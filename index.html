@@ -2158,11 +2158,11 @@ function initMapFiligranne() {
   const svg = d3.select('#map-filigranne').append('svg')
     .attr('width', W).attr('height', H);
 
-  // Toute la carte visible dans le tiers gauche
+  // Toute la carte visible dans le quart gauche
   const projection = d3.geoMercator()
-    .fitExtent([[20, 20], [W * 0.38, H - 20]], {type:'FeatureCollection', features:[
+    .fitExtent([[10, 30], [W * 0.26, H - 30]], {type:'FeatureCollection', features:[
       {type:'Feature', geometry:{type:'MultiPoint', coordinates:[
-        [-128,48],[-65,24],[-60,51],[-118,14]
+        [-128,50],[-65,24],[-58,50],[-118,14]
       ]}}
     ]});
 
@@ -2276,6 +2276,6 @@ async function init() {
 init();
 window.addEventListener("load", () => setTimeout(initMapFiligranne, 300));
 </script>
-<div id="map-filigranne" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;overflow:hidden;opacity:0.25"></div>
+<div id="map-filigranne" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;overflow:hidden;opacity:0.4"></div>
 </body>
 </html>
