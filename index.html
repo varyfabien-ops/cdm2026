@@ -48,7 +48,7 @@ body{font-family:'Aptos','Outfit',system-ui,sans-serif;background:var(--bg);colo
 /* ── USER PILL in nav ── */
 .user-pill{display:flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:20px;font-size:15px;font-weight:500;color:var(--gold);cursor:pointer;transition:all .2s;white-space:nowrap;margin:auto 12px auto 0;box-shadow:0 0 12px rgba(251,191,36,0.1)}
 .user-pill:hover{background:rgba(245,200,66,0.18);box-shadow:0 0 18px rgba(245,200,66,0.2);transform:scale(1.03)}
-.user-avatar{width:22px;height:22px;background:var(--gold);color:#374151;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.user-avatar{width:28px;height:28px;background:var(--gold);color:#374151;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;letter-spacing:-0.5px}
 
 /* ── HERO ── */
 .hero{background:linear-gradient(160deg,#07090f 0%,#0d1a30 40%,#071a12 100%);padding:0;text-align:center;border-bottom:2px solid rgba(251,191,36,0.25);position:relative;overflow:hidden}
@@ -268,7 +268,7 @@ const ADMIN_PASSWORD = 'cse2026';
 
   <nav>
     <button class="nav-tab active" data-page="accueil">ACCUEIL</button>
-    <button class="nav-tab" data-page="pronostics">PRONOSTICS <span id="prono-badge" style="display:none;background:var(--red);color:#fff;font-size:11px;font-family:sans-serif;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px;vertical-align:middle"></span></button>
+    <button class="nav-tab" data-page="pronostics">PRONOSTICS</button>
     <button class="nav-tab" data-page="classement">CLASSEMENT</button>
     <button class="nav-tab" data-page="regles">RÈGLEMENT</button>
     <button class="nav-tab" data-page="stats">STATISTIQUES</button>
@@ -289,6 +289,13 @@ const ADMIN_PASSWORD = 'cse2026';
       <div class="my-stat-card"><div class="my-stat-val" id="my-pronostics">–</div><div class="my-stat-label">Pronostics saisis</div></div>
       <div class="my-stat-card"><div class="my-stat-val" id="my-exact">–</div><div class="my-stat-label">Scores exacts</div></div>
     </div>
+    <div class="form-card" style="margin-bottom:1rem" id="progression-card">
+      <div style="font-size:13px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">📈 Ma progression</div>
+      <div id="progression-content">
+        <div style="font-size:13px;color:var(--text3)">Connecte-toi pour voir ta progression</div>
+      </div>
+    </div>
+
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.5rem" id="dashboard-cards">
       <div class="form-card" style="margin-bottom:0;text-align:center">
         <div style="font-size:13px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">⏳ Prochain pronostic</div>
@@ -385,6 +392,19 @@ const ADMIN_PASSWORD = 'cse2026';
 
   <!-- STATS -->
   <div id="page-stats" class="page">
+    <div class="section-title">📈 Évolution dans le classement</div>
+    <div class="form-card" style="margin-bottom:1rem">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center">
+        <span style="font-size:13px;color:var(--text2)">Comparer avec :</span>
+        <select id="compare-select" class="form-input" style="flex:1;max-width:200px;font-size:13px" onchange="addCompare()">
+          <option value="">-- Ajouter un collègue --</option>
+        </select>
+      </div>
+      <div id="compare-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
+      <canvas id="evolution-chart" style="width:100%;max-height:300px"></canvas>
+      <div id="evolution-legend" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"></div>
+    </div>
+
     <div class="section-title">🎲 Fun Facts</div>
     <div id="stats-content">
       <div class="empty-state"><p>Chargement...</p></div>
@@ -845,7 +865,6 @@ async function onLoginSuccess(pseudo) {
   await loadMyPronos();
   await loadStats();
   updateDashboard();
-  updatePronoBadge();
   renderNextMatch();
   renderLastResult();
 }
@@ -895,9 +914,9 @@ function computeScore(pronos, special) {
   if (special&&specialResults) {
     if (special.winner&&specialResults.winner===special.winner) points+=20;
     (special.top4||[]).forEach(t=>{ if((specialResults.top4||[]).includes(t)) points+=5; });
-    if (special.totalGoals!==undefined && special.totalGoals!=='' &&
-        specialResults.totalGoals!==undefined && specialResults.totalGoals!=='') {
-      if (Number(special.totalGoals)===Number(specialResults.totalGoals)) points+=10;
+    if (special.totalgoals!==undefined && special.totalgoals!=='' &&
+        specialResults.totalgoals!==undefined && specialResults.totalgoals!=='') {
+      if (Number(special.totalgoals)===Number(specialResults.totalgoals)) points+=10;
     }
   }
   return { points, exact };
@@ -983,8 +1002,8 @@ async function upsertSpecial() {
   if (!sbReady||!currentPseudo) return;
   const winner  = document.getElementById('sp-winner')?.value||'';
   const top4    = [0,1,2,3].map(i=>document.getElementById('sp-top4-'+i)?.value||'').filter(Boolean);
-  const totalGoals = document.getElementById('sp-goals')?.value.trim()||'';
-  mySpecial = { winner, top4, totalGoals };
+  const totalgoals = document.getElementById('sp-goals')?.value.trim()||'';
+  mySpecial = { winner, top4, totalgoals };
   await sb.from('pronos').upsert({ pseudo:currentPseudo, match_id:'special', home:null, away:null, special:mySpecial },{ onConflict:'pseudo,match_id' });
   showToast('Pronostics spéciaux enregistrés !');
   updateDashboard();
@@ -1021,6 +1040,56 @@ function startCountdowns() {
   }
   tick();
   setInterval(tick, 1000);
+}
+
+// ── Progression personnelle ───────────────────────────────────────────────
+function renderProgression() {
+  const el = document.getElementById('progression-content');
+  if (!el || !currentPseudo) return;
+
+  const totalMatchs = ALL_MATCHES.length; // 104
+  const nonLocked = ALL_MATCHES.filter(m => !isLocked(m)).length;
+  const saisis = Object.keys(myPronos).length;
+  const specialLocked = new Date() >= new Date('2026-06-11T21:00:00');
+
+  // Pronostics matchs
+  const pctMatchs = totalMatchs > 0 ? Math.round((saisis / totalMatchs) * 100) : 0;
+  const colorMatchs = pctMatchs === 100 ? 'var(--green)' : pctMatchs > 50 ? 'var(--gold)' : '#f97316';
+
+  // Pronostics spéciaux
+  let specialDone = 0;
+  if (mySpecial.winner) specialDone++;
+  if (mySpecial.top4 && mySpecial.top4.filter(Boolean).length >= 4) specialDone++;
+  if (mySpecial.totalgoals || mySpecial.totalgoals === 0) specialDone++;
+  const pctSpecial = Math.round((specialDone / 3) * 100);
+  const colorSpecial = specialDone === 3 ? 'var(--green)' : specialDone > 0 ? 'var(--gold)' : '#f97316';
+
+  function bar(pct, color) {
+    return `<div style="background:var(--bg3);border-radius:20px;height:8px;overflow:hidden;margin-top:6px">
+      <div style="background:${color};height:100%;width:${pct}%;border-radius:20px;transition:width 0.6s ease"></div>
+    </div>`;
+  }
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;color:var(--text2)">⚽ Matchs</span>
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:${colorMatchs}">${saisis}/${totalMatchs}</span>
+        </div>
+        ${bar(pctMatchs, colorMatchs)}
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">${pctMatchs}% complété</div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;color:var(--text2)">🎯 Spéciaux</span>
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:${colorSpecial}">${specialDone}/3</span>
+        </div>
+        ${bar(pctSpecial, colorSpecial)}
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">${pctSpecial}% complété${specialLocked&&specialDone<3?' — <span style=\"color:var(--red)\">Verrouillé</span>':''}</div>
+      </div>
+    </div>
+  `;
 }
 
 // ── Dashboard cards ───────────────────────────────────────────────────────
@@ -1100,6 +1169,7 @@ function goToPronoTab(phase) {
 async function updateDashboard() {
   renderNextMatch();
   renderLastResult();
+  renderProgression();
   if (!currentPseudo) return;
   const sc = computeScore(myPronos, mySpecial);
   document.getElementById('my-total').textContent = sc.points;
@@ -1118,7 +1188,7 @@ document.querySelectorAll('.nav-tab').forEach(btn => {
     document.getElementById('page-'+page).classList.add('active');
     if (page==='pronostics') renderPronostics();
     if (page==='classement') loadRanking();
-    if (page==='stats') loadStats_page();
+    if (page==='stats') { loadStats_page(); loadEvolutionChart(); }
   });
 });
 function goToPage(page) {
@@ -1216,7 +1286,6 @@ function renderPronoContent(tab) {
 function schedulePronoSave(matchId, side, val) {
   if (!myPronos[matchId]) myPronos[matchId]={home:'',away:''};
   myPronos[matchId][side] = val===''?'':parseInt(val);
-  updatePronoBadge();
   clearTimeout(saveTimers[matchId]);
   saveTimers[matchId] = setTimeout(async()=>{
     const p=myPronos[matchId];
@@ -1238,7 +1307,7 @@ function renderSpecials(c) {
       <div class="locked-badge" style="margin-bottom:12px">Pronostics spéciaux verrouillés</div>
       <p style="font-size:16px;color:var(--text2);margin-top:8px">Vainqueur : <strong style="color:var(--text)">${sp.winner||'Non renseigné'}</strong></p>
       <p style="font-size:16px;color:var(--text2);margin-top:6px">Top 4 : <strong style="color:var(--text)">${(sp.top4||[]).join(', ')||'Non renseigné'}</strong></p>
-      <p style="font-size:16px;color:var(--text2);margin-top:6px">Nombre de buts : <strong style="color:var(--text)">${sp.totalGoals||'Non renseigné'}</strong></p>
+      <p style="font-size:16px;color:var(--text2);margin-top:6px">Nombre de buts : <strong style="color:var(--text)">${sp.totalgoals||'Non renseigné'}</strong></p>
     </div>`;
     return;
   }
@@ -1249,7 +1318,7 @@ function renderSpecials(c) {
   </div>
   <div class="form-card">
     <div class="section-title" style="font-size:1rem">Vainqueur de la Coupe du Monde</div>
-    <select class="form-input" id="sp-winner" style="margin-bottom:16px"><option value="">-- Choisir --</option>${teamOpts}</select>
+    <select class="form-input" id="sp-winner" style="margin-bottom:16px" onchange="updatePronoBadge()"><option value="">-- Choisir --</option>${teamOpts}</select>
 
     <div class="section-title" style="font-size:1rem">Top 4 — Demi-finalistes</div>
     ${[0,1,2,3].map(i=>`<select class="form-input" id="sp-top4-${i}" style="margin-bottom:6px"><option value="">-- Équipe ${i+1} --</option>${[...TEAMS].sort((a,b)=>a.localeCompare(b,'fr')).map(t=>`<option value="${t}"${(sp.top4||[])[i]===t?' selected':''}>${(TEAM_FLAGS[t]||'')+' '+t.toUpperCase()}</option>`).join('')}</select>`).join('')}
@@ -1257,7 +1326,7 @@ function renderSpecials(c) {
     <div style="margin-top:20px"></div>
     <div class="section-title" style="font-size:1rem">Nombre de buts marqués</div>
     <p style="font-size:14px;color:var(--text3);margin-bottom:8px">Total des buts marqués dans toute la compétition (104 matchs)</p>
-    <input class="form-input" id="sp-goals" type="number" min="0" max="999" placeholder="Ex: 185" value="${sp.totalGoals||''}" style="margin-bottom:16px">
+    <input class="form-input" id="sp-goals" type="number" min="0" max="999" placeholder="Ex: 185" value="${sp.totalgoals||''}" style="margin-bottom:16px" oninput="updatePronoBadge()">
     <button class="btn btn-gold" style="margin-top:4px" onclick="upsertSpecial()">Enregistrer</button>
   </div>`;
 }
@@ -1357,14 +1426,14 @@ async function saveAdminResults() {
   if (upserts.length) {
     const { error } = await sb.from('results').upsert(upserts,{onConflict:'match_id'});
     if (error) showToast('Erreur : '+error.message,'error');
-    else { showToast(`${upserts.length} résultats enregistrés !`); await loadResults(); }
+    else { showToast(`${upserts.length} résultats enregistrés !`); await loadResults(); takeRankingSnapshot(); }
   } else showToast('Aucun score à enregistrer','info');
   btn.innerHTML='Enregistrer les résultats'; btn.disabled=false;
 }
 function renderAdminSpecial() {
   const tOpts=[...TEAMS].sort((a,b)=>a.localeCompare(b,'fr')).map(t=>`<option value="${t}"${specialResults.winner===t?' selected':''}>${(TEAM_FLAGS[t]||'')+' '+t.toUpperCase()}</option>`).join('');
   document.getElementById('real-winner').innerHTML=`<option value="">-- Choisir --</option>${tOpts}`;
-  document.getElementById('real-goals').value = specialResults.totalGoals||'';
+  document.getElementById('real-goals').value = specialResults.totalgoals||'';
   document.getElementById('real-top4-inputs').innerHTML=[0,1,2,3].map(i=>
     `<select class="form-input" id="real-top4-${i}" style="margin-bottom:6px"><option value="">-- Équipe ${i+1} --</option>${[...TEAMS].sort((a,b)=>a.localeCompare(b,'fr')).map(t=>`<option value="${t}"${(specialResults.top4||[])[i]===t?' selected':''}>${(TEAM_FLAGS[t]||'')+' '+t.toUpperCase()}</option>`).join('')}</select>`
   ).join('');
@@ -1372,10 +1441,10 @@ function renderAdminSpecial() {
 async function saveSpecialResults() {
   const winner=document.getElementById('real-winner').value;
   const top4=[0,1,2,3].map(i=>document.getElementById('real-top4-'+i)?.value||'').filter(Boolean);
-  const totalGoals=document.getElementById('real-goals')?.value.trim()||'';
-  const { error } = await sb.from('special_results').upsert({id:1,winner,top4,totalGoals},{onConflict:'id'});
+  const totalgoals=document.getElementById('real-goals')?.value.trim()||'';
+  const { error } = await sb.from('special_results').upsert({id:1,winner,top4,totalgoals},{onConflict:'id'});
   if (error) showToast('Erreur : '+error.message,'error');
-  else { specialResults={winner,top4,totalGoals}; showToast('Résultats spéciaux enregistrés !'); }
+  else { specialResults={winner,top4,totalgoals}; showToast('Résultats spéciaux enregistrés !'); }
 }
 async function renderAdminParticipants() {
   document.getElementById('admin-participants-list').innerHTML='<p style="color:var(--text3);font-size:16px">Chargement...</p>';
@@ -1848,17 +1917,6 @@ async function loadStats_page() {
 }
 
 // ── Badge pronostics restants ─────────────────────────────────────────────
-function updatePronoBadge() {
-  const badge = document.getElementById('prono-badge');
-  if (!badge || !currentPseudo) { if(badge) badge.style.display='none'; return; }
-  const remaining = ALL_MATCHES.filter(m => !isLocked(m) && (!myPronos[m.id] || myPronos[m.id].home === '' || myPronos[m.id].away === '')).length;
-  if (remaining > 0) {
-    badge.textContent = remaining;
-    badge.style.display = 'inline';
-  } else {
-    badge.style.display = 'none';
-  }
-}
 
 // ── Compte à rebours principal ────────────────────────────────────────────
 function startMainCountdown() {
@@ -1890,6 +1948,164 @@ function startMainCountdown() {
   }
   tick();
   setInterval(tick, 1000);
+}
+
+// ── Snapshot classement ───────────────────────────────────────────────────
+
+
+
+
+// ── Snapshot automatique du classement ────────────────────────────────────
+async function takeRankingSnapshot() {
+  await loadResults();
+  const { data: allPronos } = await sb.from('pronos').select('pseudo,match_id,home,away,special');
+  const { data: players } = await sb.from('players').select('pseudo');
+  if (!players || !players.length) return;
+
+  const byPseudo = {};
+  players.forEach(p => { byPseudo[p.pseudo] = { pronos:{}, special:{} }; });
+  (allPronos||[]).forEach(r => {
+    if (!byPseudo[r.pseudo]) return;
+    if (r.match_id==='special') byPseudo[r.pseudo].special = r.special||{};
+    else byPseudo[r.pseudo].pronos[r.match_id] = { home:r.home, away:r.away };
+  });
+
+  const ranked = Object.entries(byPseudo).map(([pseudo, d]) => {
+    const sc = computeScore(d.pronos, d.special);
+    return { pseudo, points: sc.points };
+  }).sort((a,b) => b.points - a.points);
+
+  const today = new Date().toISOString().slice(0,10);
+  // Calculer le numéro du dernier match avec résultat
+  const sortedMatches = [...ALL_MATCHES].sort((a,b) => a.deadline - b.deadline);
+  const lastMatchWithResult = sortedMatches.filter(m => allResults[m.id]).pop();
+  const matchNumber = lastMatchWithResult ? sortedMatches.findIndex(m => m.id === lastMatchWithResult.id) + 1 : 0;
+  const rows = ranked.map((r,i) => ({ pseudo:r.pseudo, points:r.points, position:i+1, snapshot_date:today, match_number:matchNumber }));
+  await sb.from('ranking_snapshots').delete().eq('snapshot_date', today);
+  await sb.from('ranking_snapshots').insert(rows);
+  console.log('Snapshot pris :', today, 'après match', matchNumber, rows.length, 'joueurs');
+}
+
+// ── Graphique d'évolution ─────────────────────────────────────────────────
+let compareList = [];
+let evolutionChartInstance = null;
+
+async function loadEvolutionChart() {
+  const chartEl = document.getElementById('evolution-chart');
+  const legendEl = document.getElementById('evolution-legend');
+  const selectEl = document.getElementById('compare-select');
+  if (!chartEl) return;
+
+  // Charger tous les snapshots
+  const { data: snapshots } = await sb.from('ranking_snapshots')
+    .select('pseudo,position,points,snapshot_date')
+    .order('snapshot_date', { ascending: true });
+
+  if (!snapshots || !snapshots.length) {
+    chartEl.style.display = 'none';
+    if (legendEl) legendEl.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--text3)">
+      <div style="font-size:2rem;margin-bottom:8px">📊</div>
+      <div style="font-size:14px">Le graphique apparaîtra après la saisie des premiers résultats officiels.</div>
+      <div style="font-size:12px;margin-top:6px;color:var(--text3)">Admin → Résultats → Enregistrer</div>
+    </div>`;
+    return;
+  }
+
+  // Dates uniques
+  const dates = [...new Set(snapshots.map(s => s.snapshot_date))].sort();
+  // Numéros de matchs associés à chaque date
+  const dateToMatch = {};
+  snapshots.forEach(s => { if (s.match_number !== null && s.match_number !== undefined) dateToMatch[s.snapshot_date] = s.match_number; });
+
+  // Remplir le select avec tous les joueurs sauf le joueur courant et ceux déjà sélectionnés
+  // Charger tous les joueurs pour le select (pas seulement ceux dans les snapshots)
+  const { data: allPlayers } = await sb.from('players').select('pseudo').order('pseudo');
+  const allPseudos = (allPlayers||[]).map(p => p.pseudo);
+  if (selectEl) {
+    selectEl.innerHTML = '<option value="">-- Ajouter un collègue --</option>' +
+      allPseudos.filter(p => p !== currentPseudo && !compareList.includes(p))
+        .map(p => `<option value="${p}">${p}</option>`).join('');
+  }
+
+  // Pseudos à afficher : joueur courant + compareList (max 5)
+  const toShow = [currentPseudo, ...compareList.slice(0,5)].filter(Boolean);
+  const colors = ['#FBBF24','#3b82f6','#22c55e','#ef4444','#a855f7','#f97316'];
+
+  // Datasets
+  const datasets = toShow.map((pseudo, idx) => {
+    const data = dates.map(d => {
+      const snap = snapshots.find(s => s.pseudo === pseudo && s.snapshot_date === d);
+      return snap ? snap.position : null;
+    });
+    return {
+      label: pseudo,
+      data,
+      borderColor: colors[idx],
+      backgroundColor: colors[idx] + '20',
+      borderWidth: pseudo === currentPseudo ? 3 : 1.5,
+      pointRadius: 5,
+      pointHoverRadius: 7,
+      tension: 0.3,
+      fill: false,
+      spanGaps: true
+    };
+  });
+
+  // Légende
+  if (legendEl) {
+    legendEl.innerHTML = datasets.map(d =>
+      `<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:3px 10px">
+        <span style="width:10px;height:10px;border-radius:50%;background:${d.borderColor};flex-shrink:0"></span>
+        ${d.label}${d.label === currentPseudo ? ' ⭐' : ''}
+      </span>`
+    ).join('');
+  }
+
+  // Graphique
+  if (evolutionChartInstance) { evolutionChartInstance.destroy(); evolutionChartInstance = null; }
+  if (!window.Chart) return;
+
+  const maxPos = Math.max(...datasets.flatMap(d => d.data.filter(Boolean)), 1);
+  evolutionChartInstance = new Chart(chartEl, {
+    type: 'line',
+    data: {
+      labels: dates.map(d => dateToMatch[d] !== undefined ? 'M'+dateToMatch[d] : new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})),
+      datasets
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label} : #${ctx.parsed.y}` } }
+      },
+      scales: {
+        x: { grid: { color:'rgba(255,255,255,0.05)' }, ticks: { color:'#94a3b8', font:{size:12} } },
+        y: {
+          reverse: true,
+          min: 1,
+          max: maxPos,
+          grid: { color:'rgba(255,255,255,0.05)' },
+          ticks: { color:'#94a3b8', font:{size:12}, stepSize:1, callback: v => '#'+v }
+        }
+      }
+    }
+  });
+}
+
+function addCompare() {
+  const sel = document.getElementById('compare-select');
+  if (!sel || !sel.value) return;
+  if (compareList.length >= 5) { showToast('Maximum 5 collègues', 'error'); return; }
+  if (!compareList.includes(sel.value)) {
+    compareList.push(sel.value);
+    loadEvolutionChart();
+  }
+  sel.value = '';
+}
+
+function removeCompare(pseudo) {
+  compareList = compareList.filter(p => p !== pseudo);
+  loadEvolutionChart();
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
