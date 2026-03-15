@@ -867,6 +867,13 @@ async function onLoginSuccess(pseudo) {
   updateDashboard();
   renderNextMatch();
   renderLastResult();
+  // Charger le classement en arrière-plan pour afficher la position
+  loadRanking();
+  // Naviguer vers l'accueil (dashboard)
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelector('[data-page="accueil"]').classList.add('active');
+  document.getElementById('page-accueil').classList.add('active');
 }
 
 // ── Logout ─────────────────────────────────────────────────────────────────
@@ -1396,14 +1403,30 @@ function adminTab(btn,id) {
   if (id==='admin-edit-regles') openAdminRegles();
 }
 async function renderAdminMatches() {
-  const phases=['Groupe A','Groupe B','Groupe C','Groupe D','Groupe E','Groupe F','Groupe G','Groupe H','Groupe I','Groupe J','Groupe K','Groupe L','Seizièmes','Huitièmes','Quarts','Demi-finales','Petite finale','Finale'];
-  let html='';
-  phases.forEach(ph=>{
-    const ms=ALL_MATCHES.filter(m=>m.phase===ph).sort((a,b)=>a.deadline-b.deadline); if (!ms.length) return;
-    html+=`<div class="group-header">${ph}</div><div class="form-card" style="margin-bottom:8px">`;
-    ms.forEach(m=>{
-      const res=allResults[m.id]||{};
-      html+=`<div style="display:grid;grid-template-columns:1fr 50px auto 50px 1fr;gap:6px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+  // Trier tous les matchs par date (même ordre que les pronostics)
+  const sorted = [...ALL_MATCHES].sort((a,b) => a.deadline - b.deadline);
+
+  // Grouper par jour
+  const byDay = {};
+  sorted.forEach(m => {
+    const key = new Date(m.deadline).toLocaleDateString('fr-FR', {weekday:'long', day:'2-digit', month:'long'});
+    if (!byDay[key]) byDay[key] = [];
+    byDay[key].push(m);
+  });
+
+  let html = '';
+  Object.entries(byDay).forEach(([day, matches]) => {
+    const dayLabel = day.charAt(0).toUpperCase() + day.slice(1);
+    html += `<div style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:2px;color:var(--gold);padding:10px 0 6px;margin-top:8px;border-bottom:1px solid rgba(251,191,36,0.2);margin-bottom:8px">📅 ${dayLabel}</div>`;
+    html += '<div class="form-card" style="margin-bottom:8px">';
+    matches.forEach(m => {
+      const res = allResults[m.id] || {};
+      const matchNum = sorted.findIndex(x => x.id === m.id) + 1;
+      html += `<div style="display:grid;grid-template-columns:1fr 50px auto 50px 1fr;gap:6px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="grid-column:1/-1;display:flex;justify-content:space-between;padding-bottom:2px">
+          <span style="font-size:11px;color:var(--gold);opacity:0.7;letter-spacing:1px">${m.phase}</span>
+          <span style="font-size:11px;color:var(--text3)">MATCH ${matchNum}</span>
+        </div>
         <div class="team-name left" style="font-size:14px">${flag(m.home)}${m.home}</div>
         <input class="score-input" type="number" min="0" max="30" placeholder="–" id="res-${m.id}-h" value="${res.home!==undefined?res.home:''}">
         <div class="vs" style="font-size:16px">–</div>
@@ -1411,9 +1434,9 @@ async function renderAdminMatches() {
         <div class="team-name right" style="font-size:14px">${m.away}${TEAM_FLAGS[m.away]?'\u00A0'+TEAM_FLAGS[m.away]:''}</div>
       </div>`;
     });
-    html+='</div>';
+    html += '</div>';
   });
-  document.getElementById('admin-matches-list').innerHTML=html;
+  document.getElementById('admin-matches-list').innerHTML = html;
 }
 async function saveAdminResults() {
   const btn=document.getElementById('save-results-btn');
@@ -1972,8 +1995,8 @@ async function takeRankingSnapshot() {
 
   const ranked = Object.entries(byPseudo).map(([pseudo, d]) => {
     const sc = computeScore(d.pronos, d.special);
-    return { pseudo, points: sc.points };
-  }).sort((a,b) => b.points - a.points);
+    return { pseudo, points: sc.points, exact: sc.exact };
+  }).sort((a,b) => b.points - a.points || b.exact - a.exact);
 
   const today = new Date().toISOString().slice(0,10);
   // Calculer le numéro du dernier match avec résultat
@@ -2053,12 +2076,14 @@ async function loadEvolutionChart() {
 
   // Légende
   if (legendEl) {
-    legendEl.innerHTML = datasets.map(d =>
-      `<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:3px 10px">
-        <span style="width:10px;height:10px;border-radius:50%;background:${d.borderColor};flex-shrink:0"></span>
-        ${d.label}${d.label === currentPseudo ? ' ⭐' : ''}
-      </span>`
-    ).join('');
+    legendEl.innerHTML = datasets.map(d => {
+      const isMe = d.label === currentPseudo;
+      return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:3px 10px">`
+        + `<span style="width:10px;height:10px;border-radius:50%;background:${d.borderColor};flex-shrink:0"></span>`
+        + `${d.label}${isMe ? ' ⭐' : ''}`
+        + (isMe ? '' : `<button onclick="removeCompare('${d.label}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;font-weight:700;padding:0 2px;line-height:1">×</button>`)
+        + '</span>';
+    }).join('');
   }
 
   // Graphique
