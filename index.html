@@ -2012,7 +2012,7 @@ async function loadEvolutionChart() {
   }
 
   // Dates uniques
-  const matchNums = [...new Set(snapshots.map(s => s.match_number))].filter(n => n !== null && n !== undefined).sort((a,b) => a-b);
+  const matchNums = [...new Set(snapshots.map(s => Number(s.match_number)))].filter(n => !isNaN(n) && n !== null).sort((a,b) => a-b);
   const dates = matchNums;
   // match_number comme axe X
 
@@ -2034,7 +2034,7 @@ async function loadEvolutionChart() {
   // Datasets
   const datasets = toShow.map((pseudo, idx) => {
     const data = matchNums.map(mn => {
-      const snap = snapshots.find(s => s.pseudo === pseudo && s.match_number === mn);
+      const snap = snapshots.find(s => s.pseudo === pseudo && Number(s.match_number) === mn);
       return snap ? snap.position : null;
     });
     return {
@@ -2071,7 +2071,7 @@ async function loadEvolutionChart() {
     if (legendEl) legendEl.innerHTML = `<div style="text-align:center;padding:1.5rem;color:var(--text3)">
       <div style="font-size:2rem;margin-bottom:8px">📊</div>
       <div style="font-size:14px;color:var(--text2)">Position actuelle : <strong style="color:var(--gold)">#${datasets[0]?.data[0] || '–'}</strong></div>
-      <div style="font-size:12px;margin-top:6px">La courbe apparaîtra après le 2ème snapshot (M${matchNums[0]+1})</div>
+      <div style="font-size:12px;margin-top:6px">La courbe apparaîtra après le 2ème snapshot</div>
     </div>` + datasets.map(d => `<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:3px 10px;margin-top:8px"><span style="width:10px;height:10px;border-radius:50%;background:${d.borderColor}"></span>${d.label}</span>`).join('');
     return;
   }
