@@ -740,7 +740,7 @@ async function hashPassword(password) {
 // ── State ──────────────────────────────────────────────────────────────────
 let currentPseudo = null;
 let myPronos = {}, allResults = {}, specialResults = {}, mySpecial = {};
-let currentPronoTab = 'specials', saveTimers = {};
+let currentPronoTab = 'groupes', saveTimers = {};
 
 // ── Utility ────────────────────────────────────────────────────────────────
 function showToast(msg, type='') {
@@ -1085,7 +1085,7 @@ function goToPronoTab(phase) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelector('[data-page="pronostics"]').classList.add('active');
   document.getElementById('page-pronostics').classList.add('active');
-  currentPronoTab = phase.startsWith('Groupe') ? phase : phase;
+  currentPronoTab = phase.startsWith('Groupe') ? 'groupes' : phase;
   renderPronostics();
 }
 
@@ -1122,9 +1122,9 @@ function goToPage(page) {
 
 // ── Pronostics ─────────────────────────────────────────────────────────────
 function renderPronostics() {
-  const phases = ['Spéciaux','Groupe A','Groupe B','Groupe C','Groupe D','Groupe E','Groupe F','Groupe G','Groupe H','Groupe I','Groupe J','Groupe K','Groupe L','Seizièmes','Huitièmes','Quarts','Demi-finales','Petite finale','Finale'];
+  const phases = ['Spéciaux','Phase de groupes','Seizièmes','Huitièmes','Quarts','Demi-finales','Petite finale','Finale'];
   document.getElementById('prono-tabs').innerHTML = phases.map(p => {
-    const key = p==='Spéciaux'?'specials':p;
+    const key = p==='Spéciaux'?'specials':p==='Phase de groupes'?'groupes':p;
     return `<button class="${key===currentPronoTab?'active':''}" onclick="switchPronoTab('${key}',this)">${p}</button>`;
   }).join('');
   renderPronoContent(currentPronoTab);
@@ -1135,37 +1135,57 @@ function switchPronoTab(tab, btn) {
   btn.classList.add('active');
   renderPronoContent(tab);
 }
+function matchRow(m) {
+  const locked=isLocked(m), pred=myPronos[m.id]||{home:'',away:''};
+  if (locked) {
+    return `<div class="match-row">
+      <div class="team-name left">${flag(m.home)}${m.home}</div>
+      <div style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--text3)">${pred.home!==''?pred.home:'–'}</div>
+      <div class="vs">–</div>
+      <div style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--text3)">${pred.away!==''?pred.away:'–'}</div>
+      <div class="team-name right">${m.away}${TEAM_FLAGS[m.away]?' '+TEAM_FLAGS[m.away]:''}</div>
+      <div class="match-date"><span class="locked-badge">Verrouillé</span></div>
+    </div>`;
+  }
+  return `<div class="match-row">
+    <div class="team-name left">${flag(m.home)}${m.home}</div>
+    <input class="score-input" type="number" min="0" max="20" placeholder="–" value="${pred.home!==''?pred.home:''}" oninput="schedulePronoSave(${m.id},'home',this.value)" id="pi-${m.id}-h">
+    <div class="vs">VS</div>
+    <input class="score-input" type="number" min="0" max="20" placeholder="–" value="${pred.away!==''?pred.away:''}" oninput="schedulePronoSave(${m.id},'away',this.value)" id="pi-${m.id}-a">
+    <div class="team-name right">${m.away}${TEAM_FLAGS[m.away]?' '+TEAM_FLAGS[m.away]:''}</div>
+    <div class="match-date" id="pst-${m.id}"><span class="countdown" data-deadline="${new Date(m.deadline).getTime()}"></span> <span style="color:var(--text3);font-size:13px">(${new Date(m.deadline).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})} à ${new Date(m.deadline).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})})</span></div>
+  </div>`;
+}
+
 function renderPronoContent(tab) {
-  // Les comptes à rebours seront lancés après le rendu
   setTimeout(startCountdowns, 50);
   const c = document.getElementById('prono-content');
   if (tab==='specials') { renderSpecials(c); return; }
-  const ms = ALL_MATCHES.filter(m=>m.phase===tab).sort((a,b)=>a.deadline-b.deadline);
+  const isGroupes = tab === 'groupes';
+  const ms = isGroupes
+    ? ALL_MATCHES.filter(m=>m.phase.startsWith('Groupe')).sort((a,b)=>a.deadline-b.deadline)
+    : ALL_MATCHES.filter(m=>m.phase===tab).sort((a,b)=>a.deadline-b.deadline);
   if (!ms.length) { c.innerHTML='<div class="form-card"><p style="color:var(--text2);font-size:16px">Ces matchs seront disponibles après la phase de groupes.</p></div>'; return; }
-  let html='<div class="form-card">';
+
+  // Grouper par jour
+  const byDay = {};
   ms.forEach(m => {
-    const locked=isLocked(m), pred=myPronos[m.id]||{home:'',away:''}, dl=fmtDate(m.deadline);
-    if (locked) {
-      html+=`<div class="match-row">
-        <div class="team-name left">${flag(m.home)}${m.home}</div>
-        <div style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--text3)">${pred.home!==''?pred.home:'–'}</div>
-        <div class="vs">–</div>
-        <div style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--text3)">${pred.away!==''?pred.away:'–'}</div>
-        <div class="team-name right">${m.away}${TEAM_FLAGS[m.away]?'\u00A0'+TEAM_FLAGS[m.away]:''}</div>
-        <div class="match-date"><span class="locked-badge">Verrouillé</span></div>
-      </div>`;
-    } else {
-      html+=`<div class="match-row">
-        <div class="team-name left">${flag(m.home)}${m.home}</div>
-        <input class="score-input" type="number" min="0" max="20" placeholder="–" value="${pred.home!==''?pred.home:''}" oninput="schedulePronoSave(${m.id},'home',this.value)" id="pi-${m.id}-h">
-        <div class="vs">VS</div>
-        <input class="score-input" type="number" min="0" max="20" placeholder="–" value="${pred.away!==''?pred.away:''}" oninput="schedulePronoSave(${m.id},'away',this.value)" id="pi-${m.id}-a">
-        <div class="team-name right">${m.away}${TEAM_FLAGS[m.away]?'\u00A0'+TEAM_FLAGS[m.away]:''}</div>
-        <div class="match-date" id="pst-${m.id}"><span class="countdown" data-deadline="${new Date(m.deadline).getTime()}"></span> <span style="color:var(--text3);font-size:13px">(${new Date(m.deadline).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})} à ${new Date(m.deadline).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})})</span></div>
-      </div>`;
-    }
+    const d = new Date(m.deadline);
+    const key = d.toLocaleDateString('fr-FR', {weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+    if (!byDay[key]) byDay[key] = [];
+    byDay[key].push(m);
   });
-  c.innerHTML=html+'</div>';
+
+  let html = '';
+  Object.entries(byDay).forEach(([day, matches]) => {
+    const dayLabel = day.charAt(0).toUpperCase() + day.slice(1);
+    html += `<div style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:2px;color:var(--gold);padding:10px 0 6px;margin-top:8px;border-bottom:1px solid rgba(251,191,36,0.2);margin-bottom:8px">📅 ${dayLabel}</div>`;
+    html += '<div class="form-card" style="margin-bottom:12px">';
+    matches.forEach(m => { html += matchRow(m); });
+    html += '</div>';
+  });
+
+  c.innerHTML = html;
 }
 function schedulePronoSave(matchId, side, val) {
   if (!myPronos[matchId]) myPronos[matchId]={home:'',away:''};
