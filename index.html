@@ -1998,8 +1998,8 @@ async function loadEvolutionChart() {
 
   // Charger tous les snapshots
   const { data: snapshots } = await sb.from('ranking_snapshots')
-    .select('pseudo,position,points,snapshot_date')
-    .order('snapshot_date', { ascending: true });
+    .select('pseudo,position,points,snapshot_date,match_number')
+    .order('match_number', { ascending: true });
 
   if (!snapshots || !snapshots.length) {
     chartEl.style.display = 'none';
