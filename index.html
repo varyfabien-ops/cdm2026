@@ -15,7 +15,8 @@
   --text:#FEFCE8;--text2:#d1d5db;--text3:#9ca3af;
   --border:#1e2d45;--border2:#2a3d5a;
 }
-body{font-family:'Aptos','Outfit',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+body{font-family:'Aptos','Outfit',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+#app,#auth-overlay{position:relative;z-index:1}
 
 /* ── AUTH OVERLAY ── */
 #auth-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem}
@@ -172,8 +173,11 @@ select.form-input{appearance:none;cursor:pointer}
 </style>
 </head>
 <body>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
 
 <!-- ═══ CONFIG ═══ -->
 <script>
@@ -2143,6 +2147,97 @@ function addCompare() {
 function removeCompare(pseudo) {
   compareList = compareList.filter(p => p !== pseudo);
   loadEvolutionChart();
+}
+
+// ── Carte filigrane ───────────────────────────────────────────────────────
+function initMapFiligranne() {
+  const container = document.getElementById('map-filigranne');
+  if (!container || !window.d3 || !window.topojson) return;
+
+  const W = window.innerWidth, H = window.innerHeight;
+  const svg = d3.select('#map-filigranne').append('svg')
+    .attr('width', W).attr('height', H);
+
+  const projection = d3.geoMercator()
+    .center([-97, 37])
+    .scale(Math.min(W, H) * 0.85)
+    .translate([W / 2, H / 2]);
+
+  const path = d3.geoPath().projection(projection);
+
+  const cities = [
+    {name:'Seattle',     coords:[-122.3321,47.6062]},
+    {name:'Vancouver',   coords:[-123.1207,49.2827]},
+    {name:'San Francisco',coords:[-122.4194,37.7749]},
+    {name:'Los Angeles', coords:[-118.2437,34.0522]},
+    {name:'Dallas',      coords:[-96.7970,32.7767]},
+    {name:'Houston',     coords:[-95.3698,29.7604]},
+    {name:'Kansas City', coords:[-94.5786,39.0997]},
+    {name:'Atlanta',     coords:[-84.3880,33.7490]},
+    {name:'Miami',       coords:[-80.1918,25.7617]},
+    {name:'Boston',      coords:[-71.0589,42.3601]},
+    {name:'New York',    coords:[-74.0060,40.7128]},
+    {name:'Philadelphia',coords:[-75.1652,39.9526]},
+    {name:'Toronto',     coords:[-79.3832,43.6532]},
+    {name:'Mexico City', coords:[-99.1332,19.4326]},
+    {name:'Guadalajara', coords:[-103.3496,20.6597]},
+    {name:'Monterrey',   coords:[-100.3161,25.6866]},
+  ];
+
+  // Filtre glow
+  const defs = svg.append('defs');
+  const filter = defs.append('filter').attr('id','glow-map');
+  filter.append('feGaussianBlur').attr('stdDeviation','3.5').attr('result','coloredBlur');
+  const feMerge = filter.append('feMerge');
+  feMerge.append('feMergeNode').attr('in','coloredBlur');
+  feMerge.append('feMergeNode').attr('in','SourceGraphic');
+
+  d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world => {
+    const countries = topojson.feature(world, world.objects.countries).features
+      .filter(d => ['124','840','484'].includes(String(d.id)));
+
+    svg.append('g').selectAll('path')
+      .data(countries).join('path')
+      .attr('d', path)
+      .attr('fill','#1e2d45')
+      .attr('stroke','#2a3a55')
+      .attr('stroke-width','0.8');
+
+    // Lignes entre villes
+    const links = [];
+    for (let i = 0; i < cities.length - 1; i++) {
+      links.push({source: cities[i].coords, target: cities[i+1].coords});
+    }
+    svg.selectAll('line').data(links).enter().append('line')
+      .attr('x1', d => projection(d.source)[0])
+      .attr('y1', d => projection(d.source)[1])
+      .attr('x2', d => projection(d.target)[0])
+      .attr('y2', d => projection(d.target)[1])
+      .attr('stroke','#00e5ff')
+      .attr('stroke-width', 1)
+      .attr('opacity', 0.4)
+      .attr('filter','url(#glow-map)');
+
+    // Points villes
+    svg.selectAll('circle').data(cities).enter().append('circle')
+      .attr('cx', d => projection(d.coords)[0])
+      .attr('cy', d => projection(d.coords)[1])
+      .attr('r', 4)
+      .attr('fill','#ffd54a')
+      .attr('stroke','#fff')
+      .attr('stroke-width', 1)
+      .attr('filter','url(#glow-map)');
+
+    // Labels villes
+    svg.selectAll('text').data(cities).enter().append('text')
+      .attr('x', d => projection(d.coords)[0] + 7)
+      .attr('y', d => projection(d.coords)[1] + 4)
+      .attr('font-size','9px')
+      .attr('font-family','sans-serif')
+      .attr('font-weight','700')
+      .attr('fill','#ffd54a')
+      .text(d => d.name);
+  }).catch(() => {});
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
