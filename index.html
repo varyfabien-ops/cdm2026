@@ -96,6 +96,13 @@ select.form-input{appearance:none;cursor:pointer}
 .team-name.left{text-align:right}
 .vs{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--text3);text-align:center}
 .match-date{font-size:15px;color:var(--text2);text-align:center;grid-column:1/-1;margin-top:6px}
+.result-badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px;letter-spacing:0.5px;margin-left:8px}
+.badge-exact{background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid rgba(34,197,94,0.3)}
+.badge-good{background:rgba(251,191,36,0.15);color:#FBBF24;border:1px solid rgba(251,191,36,0.3)}
+.badge-miss{background:rgba(239,68,68,0.12);color:#ef4444;border:1px solid rgba(239,68,68,0.25)}
+.si-exact{background:rgba(34,197,94,0.2)!important;color:#22c55e!important}
+.si-good{background:rgba(251,191,36,0.15)!important;color:#FBBF24!important}
+.si-miss{background:rgba(239,68,68,0.12)!important;color:#ef4444!important}
 .score-input{width:100%;text-align:center;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-family:'Bebas Neue',sans-serif;font-size:1.4rem;outline:none;transition:border .2s;-moz-appearance:textfield;appearance:textfield}
 .score-input::-webkit-outer-spin-button,.score-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .score-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(251,191,36,0.15);transform:scale(1.05)}
@@ -867,6 +874,13 @@ async function onLoginSuccess(pseudo) {
   updateDashboard();
   renderNextMatch();
   renderLastResult();
+  // Charger le classement dès la connexion pour afficher la position
+  loadRanking();
+  // Naviguer vers l'accueil
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelector('[data-page="accueil"]').classList.add('active');
+  document.getElementById('page-accueil').classList.add('active');
 }
 
 // ── Logout ─────────────────────────────────────────────────────────────────
@@ -1212,6 +1226,13 @@ function switchPronoTab(tab, btn) {
   btn.classList.add('active');
   renderPronoContent(tab);
 }
+function computeMatchPoints(phase, pred, res) {
+  const exact = pred.home == res.home && pred.away == res.away;
+  const pts = { 'Groupe':exact?3:1, 'Seizi':exact?6:2, 'Huiti':exact?9:3, 'Quart':exact?12:4, 'Demi':exact?15:5, 'Petite':exact?18:6, 'Finale':exact?24:8 };
+  for (const [k,v] of Object.entries(pts)) { if (phase.includes(k)) return v; }
+  return exact ? 3 : 1;
+}
+
 function getMatchNumber(m) {
   const sorted = [...ALL_MATCHES].sort((a,b) => a.deadline - b.deadline);
   return sorted.findIndex(x => x.id === m.id) + 1;
@@ -1224,19 +1245,40 @@ function matchSeparator() {
 function matchRow(m) {
   const locked=isLocked(m), pred=myPronos[m.id]||{home:'',away:''};
   const matchNum = getMatchNumber(m);
+  const res = allResults[m.id];
   const gl = `<div style="grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;padding-top:4px;padding-bottom:2px">
     <span style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;letter-spacing:2px;color:var(--gold);opacity:0.8">${m.phase.startsWith('Groupe') ? m.phase : m.phase}</span>
     <span style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;letter-spacing:1px;color:var(--text3)">MATCH ${matchNum}</span>
   </div>`;
+
+  // Calculer le résultat si score officiel disponible
+  let resultBadge = '', scoreClass = '';
+  if (res && pred.home !== '' && pred.away !== '') {
+    const predWin = pred.home > pred.away ? 'H' : pred.home < pred.away ? 'A' : 'D';
+    const resWin  = res.home  > res.away  ? 'H' : res.home  < res.away  ? 'A' : 'D';
+    const pts = computeMatchPoints(m.phase, pred, res);
+    if (pred.home == res.home && pred.away == res.away) {
+      scoreClass = 'si-exact'; resultBadge = `<span class="result-badge badge-exact">⚡ Score exact — ${pts} pts</span>`;
+    } else if (predWin === resWin) {
+      scoreClass = 'si-good'; resultBadge = `<span class="result-badge badge-good">✓ Bon résultat — ${pts} pts</span>`;
+    } else {
+      scoreClass = 'si-miss'; resultBadge = '<span class="result-badge badge-miss">✗ Raté — 0 pt</span>';
+    }
+  }
+
+  const officialRow = res ? `<div style="grid-column:1/-1;text-align:center;font-size:12px;color:var(--text3);margin-top:4px">
+    Score officiel : <strong style="color:var(--text)">${res.home} - ${res.away}</strong>${resultBadge}
+  </div>` : '';
+
   if (locked) {
     return `<div class="match-row" style="padding-top:2px">
       ${gl}
       <div class="team-name left">${flag(m.home)}${m.home}</div>
-      <div style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--text3)">${pred.home!==''?pred.home:'–'}</div>
+      <div class="score-input ${scoreClass}" style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;display:flex;align-items:center;justify-content:center">${pred.home!==''?pred.home:'–'}</div>
       <div class="vs">–</div>
-      <div style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--text3)">${pred.away!==''?pred.away:'–'}</div>
+      <div class="score-input ${scoreClass}" style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;display:flex;align-items:center;justify-content:center">${pred.away!==''?pred.away:'–'}</div>
       <div class="team-name right">${m.away}${TEAM_FLAGS[m.away]?' '+TEAM_FLAGS[m.away]:''}</div>
-      <div class="match-date"><span class="locked-badge">Verrouillé</span></div>
+      ${officialRow || '<div class="match-date"><span class="locked-badge">Verrouillé</span></div>'}
     </div>`;
   }
   return `<div class="match-row" style="padding-top:2px">
@@ -1396,22 +1438,36 @@ function adminTab(btn,id) {
   if (id==='admin-edit-regles') openAdminRegles();
 }
 async function renderAdminMatches() {
-  const phases=['Groupe A','Groupe B','Groupe C','Groupe D','Groupe E','Groupe F','Groupe G','Groupe H','Groupe I','Groupe J','Groupe K','Groupe L','Seizièmes','Huitièmes','Quarts','Demi-finales','Petite finale','Finale'];
-  let html='';
-  phases.forEach(ph=>{
-    const ms=ALL_MATCHES.filter(m=>m.phase===ph).sort((a,b)=>a.deadline-b.deadline); if (!ms.length) return;
-    html+=`<div class="group-header">${ph}</div><div class="form-card" style="margin-bottom:8px">`;
-    ms.forEach(m=>{
-      const res=allResults[m.id]||{};
-      html+=`<div style="display:grid;grid-template-columns:1fr 50px auto 50px 1fr;gap:6px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
-        <div class="team-name left" style="font-size:14px">${flag(m.home)}${m.home}</div>
-        <input class="score-input" type="number" min="0" max="30" placeholder="–" id="res-${m.id}-h" value="${res.home!==undefined?res.home:''}">
-        <div class="vs" style="font-size:16px">–</div>
-        <input class="score-input" type="number" min="0" max="30" placeholder="–" id="res-${m.id}-a" value="${res.away!==undefined?res.away:''}">
-        <div class="team-name right" style="font-size:14px">${m.away}${TEAM_FLAGS[m.away]?'\u00A0'+TEAM_FLAGS[m.away]:''}</div>
+  const sorted = [...ALL_MATCHES].sort((a,b) => a.deadline - b.deadline);
+  const byDay = {};
+  sorted.forEach(m => {
+    const key = new Date(m.deadline).toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long'});
+    if (!byDay[key]) byDay[key] = [];
+    byDay[key].push(m);
+  });
+  let html = '';
+  Object.entries(byDay).forEach(([day, matches]) => {
+    const dayLabel = day.charAt(0).toUpperCase() + day.slice(1);
+    html += `<div style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:2px;color:var(--gold);padding:10px 0 6px;margin-top:8px;border-bottom:1px solid rgba(251,191,36,0.2);margin-bottom:8px">📅 ${dayLabel}</div>`;
+    html += '<div class="form-card" style="margin-bottom:8px">';
+    matches.forEach(m => {
+      const res = allResults[m.id]||{};
+      const matchNum = sorted.findIndex(x => x.id === m.id) + 1;
+      html += `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:11px;color:var(--gold);opacity:0.7;letter-spacing:1px">${m.phase}</span>
+          <span style="font-size:11px;color:var(--text3)">MATCH ${matchNum}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 50px auto 50px 1fr;gap:6px;align-items:center">
+          <div class="team-name left" style="font-size:14px">${flag(m.home)}${m.home}</div>
+          <input class="score-input" type="number" min="0" max="30" placeholder="–" id="res-${m.id}-h" value="${res.home!==undefined?res.home:''}">
+          <div class="vs" style="font-size:16px">–</div>
+          <input class="score-input" type="number" min="0" max="30" placeholder="–" id="res-${m.id}-a" value="${res.away!==undefined?res.away:''}">
+          <div class="team-name right" style="font-size:14px">${m.away}${TEAM_FLAGS[m.away]?'\u00A0'+TEAM_FLAGS[m.away]:''}</div>
+        </div>
       </div>`;
     });
-    html+='</div>';
+    html += '</div>';
   });
   document.getElementById('admin-matches-list').innerHTML=html;
 }
@@ -1972,8 +2028,8 @@ async function takeRankingSnapshot() {
 
   const ranked = Object.entries(byPseudo).map(([pseudo, d]) => {
     const sc = computeScore(d.pronos, d.special);
-    return { pseudo, points: sc.points };
-  }).sort((a,b) => b.points - a.points);
+    return { pseudo, points: sc.points, exact: sc.exact };
+  }).sort((a,b) => b.points - a.points || b.exact - a.exact);
 
   const today = new Date().toISOString().slice(0,10);
   // Calculer le numéro du dernier match avec résultat
@@ -1981,9 +2037,10 @@ async function takeRankingSnapshot() {
   const lastMatchWithResult = sortedMatches.filter(m => allResults[m.id]).pop();
   const matchNumber = lastMatchWithResult ? sortedMatches.findIndex(m => m.id === lastMatchWithResult.id) + 1 : 0;
   const rows = ranked.map((r,i) => ({ pseudo:r.pseudo, points:r.points, position:i+1, snapshot_date:today, match_number:matchNumber }));
-  await sb.from('ranking_snapshots').delete().eq('snapshot_date', today);
+  // Dédupliquer par match_number (pas par date)
+  await sb.from('ranking_snapshots').delete().eq('match_number', matchNumber);
   await sb.from('ranking_snapshots').insert(rows);
-  console.log('Snapshot pris :', today, 'après match', matchNumber, rows.length, 'joueurs');
+  console.log('Snapshot pris : M' + matchNumber, rows.length, 'joueurs');
 }
 
 // ── Graphique d'évolution ─────────────────────────────────────────────────
@@ -1998,8 +2055,8 @@ async function loadEvolutionChart() {
 
   // Charger tous les snapshots
   const { data: snapshots } = await sb.from('ranking_snapshots')
-    .select('pseudo,position,points,snapshot_date')
-    .order('snapshot_date', { ascending: true });
+    .select('pseudo,position,points,snapshot_date,match_number')
+    .order('match_number', { ascending: true });
 
   if (!snapshots || !snapshots.length) {
     chartEl.style.display = 'none';
@@ -2011,11 +2068,8 @@ async function loadEvolutionChart() {
     return;
   }
 
-  // Dates uniques
-  const dates = [...new Set(snapshots.map(s => s.snapshot_date))].sort();
-  // Numéros de matchs associés à chaque date
-  const dateToMatch = {};
-  snapshots.forEach(s => { if (s.match_number !== null && s.match_number !== undefined) dateToMatch[s.snapshot_date] = s.match_number; });
+  // Grouper par match_number
+  const matchNums = [...new Set(snapshots.map(s => Number(s.match_number)))].filter(n => !isNaN(n)).sort((a,b) => a-b);
 
   // Remplir le select avec tous les joueurs sauf le joueur courant et ceux déjà sélectionnés
   // Charger tous les joueurs pour le select (pas seulement ceux dans les snapshots)
@@ -2033,8 +2087,8 @@ async function loadEvolutionChart() {
 
   // Datasets
   const datasets = toShow.map((pseudo, idx) => {
-    const data = dates.map(d => {
-      const snap = snapshots.find(s => s.pseudo === pseudo && s.snapshot_date === d);
+    const data = matchNums.map(mn => {
+      const snap = snapshots.find(s => s.pseudo === pseudo && Number(s.match_number) === mn);
       return snap ? snap.position : null;
     });
     return {
@@ -2064,12 +2118,22 @@ async function loadEvolutionChart() {
   // Graphique
   if (evolutionChartInstance) { evolutionChartInstance.destroy(); evolutionChartInstance = null; }
   if (!window.Chart) return;
+  if (matchNums.length < 2) {
+    chartEl.style.display = 'none';
+    if (legendEl) legendEl.innerHTML = `<div style="text-align:center;padding:1.5rem;color:var(--text3)">
+      <div style="font-size:2rem;margin-bottom:8px">📊</div>
+      <div style="font-size:14px;color:var(--text2)">Position actuelle : <strong style="color:var(--gold)">#${datasets[0]?.data[0] || '–'}</strong></div>
+      <div style="font-size:12px;margin-top:6px">La courbe apparaîtra après le 2ème snapshot</div>
+    </div>`;
+    return;
+  }
+  chartEl.style.display = 'block';
 
   const maxPos = Math.max(...datasets.flatMap(d => d.data.filter(Boolean)), 1);
   evolutionChartInstance = new Chart(chartEl, {
     type: 'line',
     data: {
-      labels: dates.map(d => dateToMatch[d] !== undefined ? 'M'+dateToMatch[d] : new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})),
+      labels: matchNums.map(mn => 'M'+mn),
       datasets
     },
     options: {
@@ -2107,6 +2171,7 @@ function removeCompare(pseudo) {
   compareList = compareList.filter(p => p !== pseudo);
   loadEvolutionChart();
 }
+
 
 // ── Init ───────────────────────────────────────────────────────────────────
 async function init() {
