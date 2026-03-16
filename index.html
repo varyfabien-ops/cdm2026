@@ -2333,23 +2333,10 @@ function initMapFiligranne() {
 
   // On veut que Mexico City (19.4°N) soit en bas et Vancouver (49.3°N) soit en haut
   // On calcule manuellement scale et translate pour ça
-  const projection = d3.geoMercator();
-
-  // Bornes géographiques : lon -130 à -60, lat 16 à 52
-  const bounds = [[-130, 16], [-60, 52]];
-  const [x0, y0] = projection(bounds[0]);
-  const [x1, y1] = projection(bounds[1]);
-
-  const scale = Math.min(W / Math.abs(x1 - x0), H / Math.abs(y0 - y1)) * 0.95;
-  projection.scale(scale);
-
-  // Recalculer avec le bon scale
-  const p0 = projection([-130, 16]);
-  const p1 = projection([-60, 52]);
-  // On veut que p0 (Mexico City zone) soit en bas à gauche
-  const tx = -p0[0] + 10;
-  const ty = H - p0[1] - 10;
-  projection.translate([tx, ty]);
+  const geoBounds = {type:'Feature', geometry:{type:'Polygon', coordinates:[[
+    [-130,16],[-60,16],[-60,52],[-130,52],[-130,16]
+  ]]}};
+  const projection = d3.geoMercator().fitSize([W, H], geoBounds);
 
   const path = d3.geoPath().projection(projection);
 
