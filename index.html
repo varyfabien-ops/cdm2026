@@ -253,6 +253,11 @@ const ADMIN_PASSWORD = 'cse2026';
 </div>
 
 <!-- ═══ APP ═══ -->
+<div id="notif-banner" style="display:none;background:#0f1f14;border-bottom:1px solid rgba(34,197,94,0.3);padding:10px 1rem;text-align:center;font-size:14px;color:#86efac;position:fixed;top:0;left:0;right:0;z-index:9999;animation:slideDown 0.4s ease">
+  <button onclick="dismissNotif()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#86efac;cursor:pointer;font-size:18px">×</button>
+  <span id="notif-text">🔔 Nouveaux résultats disponibles !</span>
+  <a onclick="dismissNotif();navigateTo('classement')" style="color:#22c55e;font-weight:700;cursor:pointer;text-decoration:underline;margin-left:8px">Voir le classement →</a>
+</div>
 <div id="app" style="display:none">
 
   <div class="hero">
@@ -289,12 +294,6 @@ const ADMIN_PASSWORD = 'cse2026';
       <span id="user-pill-name">–</span>
     </div>
   </nav>
-  <div id="notif-banner">
-    <button onclick="dismissNotif()">×</button>
-    <span id="notif-text">🔔 Nouveaux résultats disponibles !</span>
-    <a onclick="dismissNotif();navigateTo('classement')">Voir le classement →</a>
-  </div>
-
   <!-- ACCUEIL -->
   <div id="page-accueil" class="page active">
     <div id="config-check"></div>
