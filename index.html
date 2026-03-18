@@ -289,6 +289,11 @@ const ADMIN_PASSWORD = 'cse2026';
       <span id="user-pill-name">–</span>
     </div>
   </nav>
+  <div id="notif-banner">
+    <button onclick="dismissNotif()">×</button>
+    <span id="notif-text">🔔 Nouveaux résultats disponibles !</span>
+    <a onclick="dismissNotif();navigateTo('classement')">Voir le classement →</a>
+  </div>
 
   <!-- ACCUEIL -->
   <div id="page-accueil" class="page active">
@@ -1209,7 +1214,7 @@ document.querySelectorAll('.nav-tab').forEach(btn => {
     document.getElementById('page-'+page).classList.add('active');
     if (page==='pronostics') renderPronostics();
     if (page==='classement') loadRanking();
-    if (page==='stats') { loadStats_page(); loadEvolutionChart(); }
+    if (page==='stats') { compareList = []; loadStats_page(); loadEvolutionChart(); }
   });
 });
 function goToPage(page) {
