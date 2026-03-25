@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pronostics CDM 2026 — CSE</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
-<style>@font-face{font-family:'Aptos';src:local('Aptos'),local('Aptos-Regular');font-weight:400;font-style:normal}@font-face{font-family:'Aptos';src:local('Aptos Medium'),local('Aptos-Medium');font-weight:500;font-style:normal}@font-face{font-family:'Aptos';src:local('Aptos Semibold'),local('Aptos-Semibold'),local('Aptos Bold');font-weight:600 700;font-style:normal}</style>
+<style>@font-face{font-family:'Aptos';src:local('Aptos'),local('Aptos-Regular');font-weight:400;font-style:normal}@font-face{font-family:'Aptos';src:local('Aptos Medium'),local('Aptos-Medium');font-weight:500;font-style:normal}@font-face{font-family:'Aptos';src:local('Aptos Semibold'),local('Aptos-Semibold'),local('Aptos Bold');font-weight:600 700;font-style:normal}.emoji{height:1.2em;width:1.2em;vertical-align:-0.1em;display:inline-block}
+img.emoji{height:1.2em;width:1.2em;vertical-align:-0.1em;display:inline-block;margin:0 1px}
+</style>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -181,6 +183,7 @@ select.form-input{appearance:none;cursor:pointer}
   .rank-row{grid-template-columns:36px 1fr 60px 50px 50px;padding:10px 10px}
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@twemoji/api@15/dist/twemoji.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
 <div id="notif-banner" style="display:none;background:#0f1f14;border-bottom:1px solid rgba(34,197,94,0.3);padding:10px 1rem;text-align:center;font-size:14px;color:#86efac;position:fixed;top:0;left:0;right:0;z-index:9999">
@@ -662,7 +665,7 @@ let appConfig = {
     "ARTICLE 2 – CONDITIONS DE PARTICIPATION|Le concours est gratuit et ouvert à l'ensemble des salariés de l'entreprise. Chaque participant ne peut créer qu'un seul compte. En cas de comptes multiples détectés, seul le premier compte enregistré sera pris en compte. Les membres du CSE sont autorisés à participer.",
     "ARTICLE 3 – MODALITÉS DE PARTICIPATION|La participation s'effectue via l'application en ligne dont le lien est communiqué par le CSE. Les pronostics doivent être saisis avant le coup d'envoi de chaque match. Les pronostics peuvent être modifiés librement jusqu'à la clôture de chaque match.",
     "ARTICLE 4 – PRONOSTICS SPÉCIAUX|Trois pronostics spéciaux sont à saisir avant le début du tournoi (11 juin 2026) : le vainqueur de la Coupe du Monde, les quatre demi-finalistes (top 4), et le nombre total de buts marqués durant la compétition (104 matchs). Ces pronostics sont verrouillés dès le coup d'envoi du premier match.",
-    "ARTICLE 5 – SYSTÈME DE POINTS|Bon résultat : de 1 pt (groupes) à 8 pts (finale). Score exact : de 3 pts (groupes) à 24 pts (finale). Pronostics spéciaux : 20 pts pour le vainqueur, 5 pts par équipe du top 4 correcte, 10 pts pour le nombre de buts exact. Pour les phases finales, le résultat est celui à l'issue des 90 min et des prolongations. Les tirs au but ne sont pas pronostiqués.",
+    "ARTICLE 5 – SYSTÈME DE POINTS|<table style='width:100%;border-collapse:collapse;margin:8px 0 12px;font-size:14px'><thead><tr style='border-bottom:1px solid rgba(251,191,36,0.3)'><th style='text-align:left;padding:6px 8px;color:var(--gold);font-family:Bebas Neue,sans-serif;letter-spacing:1px'>Phase</th><th style='text-align:center;padding:6px 8px;color:var(--gold);font-family:Bebas Neue,sans-serif;letter-spacing:1px'>Bon résultat</th><th style='text-align:center;padding:6px 8px;color:var(--gold);font-family:Bebas Neue,sans-serif;letter-spacing:1px'>Score exact</th></tr></thead><tbody><tr style='border-bottom:1px solid var(--border)'><td style='padding:5px 8px'>Phase de groupes</td><td style='text-align:center;padding:5px 8px'>1 pt</td><td style='text-align:center;padding:5px 8px'>3 pts</td></tr><tr style='border-bottom:1px solid var(--border)'><td style='padding:5px 8px'>Seizièmes de finale</td><td style='text-align:center;padding:5px 8px'>2 pts</td><td style='text-align:center;padding:5px 8px'>6 pts</td></tr><tr style='border-bottom:1px solid var(--border)'><td style='padding:5px 8px'>Huitièmes de finale</td><td style='text-align:center;padding:5px 8px'>3 pts</td><td style='text-align:center;padding:5px 8px'>9 pts</td></tr><tr style='border-bottom:1px solid var(--border)'><td style='padding:5px 8px'>Quarts de finale</td><td style='text-align:center;padding:5px 8px'>4 pts</td><td style='text-align:center;padding:5px 8px'>12 pts</td></tr><tr style='border-bottom:1px solid var(--border)'><td style='padding:5px 8px'>Demi-finales</td><td style='text-align:center;padding:5px 8px'>5 pts</td><td style='text-align:center;padding:5px 8px'>15 pts</td></tr><tr style='border-bottom:1px solid var(--border)'><td style='padding:5px 8px'>Petite finale</td><td style='text-align:center;padding:5px 8px'>6 pts</td><td style='text-align:center;padding:5px 8px'>18 pts</td></tr><tr style='border-bottom:1px solid var(--border)'><td style='padding:5px 8px'>Finale</td><td style='text-align:center;padding:5px 8px'>8 pts</td><td style='text-align:center;padding:5px 8px'>24 pts</td></tr></tbody></table><table style='width:100%;border-collapse:collapse;margin:0 0 8px;font-size:14px'><thead><tr style='border-bottom:1px solid rgba(251,191,36,0.3)'><th style='text-align:left;padding:6px 8px;color:var(--gold);font-family:Bebas Neue,sans-serif;letter-spacing:1px'>Pronostic spécial</th><th style='text-align:center;padding:6px 8px;color:var(--gold);font-family:Bebas Neue,sans-serif;letter-spacing:1px'>Points</th></tr></thead><tbody><tr style='border-bottom:1px solid var(--border)'><td style='padding:5px 8px'>Vainqueur du tournoi</td><td style='text-align:center;padding:5px 8px'>20 pts</td></tr><tr style='border-bottom:1px solid var(--border)'><td style='padding:5px 8px'>Top 4 (par équipe correcte)</td><td style='text-align:center;padding:5px 8px'>5 pts</td></tr><tr style='border-bottom:1px solid var(--border)'><td style='padding:5px 8px'>Nombre exact de buts</td><td style='text-align:center;padding:5px 8px'>10 pts</td></tr></tbody></table>Pour les phases finales, le résultat est celui à l'issue des 90 min et des prolongations. Les tirs au but ne sont pas pronostiqués.",
     "ARTICLE 6 – CLASSEMENT|Le classement est établi en fonction du total de points cumulés. Il est évolutif pendant toute la durée du tournoi et définitif à l'issue de la validation de l'ensemble des résultats officiels. En cas d'égalité, le départage s'effectue selon : 1) nombre de scores exacts, 2) tirage au sort.",
     "ARTICLE 7 – DOTATIONS|Les dotations sont fournies par le CSE et attribuées aux 3 participants les mieux classés à l'issue du tournoi. La nature des lots sera communiquée séparément. Les lots ne peuvent faire l'objet d'aucune contrepartie financière et ne sont ni échangeables, ni remboursables.",
     "ARTICLE 8 – RESPONSABILITÉ|Le CSE se réserve le droit de modifier, reporter ou annuler le concours en cas de force majeure ou de circonstances exceptionnelles indépendantes de sa volonté. Aucune contestation ne pourra être formulée concernant : les résultats sportifs officiels, l'attribution des points, ou le classement final. Les décisions du CSE sont souveraines.",
@@ -892,6 +895,8 @@ async function onLoginSuccess(pseudo) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelector('[data-page="accueil"]').classList.add('active');
   document.getElementById('page-accueil').classList.add('active');
+  // Appliquer Twemoji pour les drapeaux sur tous les navigateurs
+  if (window.twemoji) twemoji.parse(document.body, {folder:'svg',ext:'.svg'});
 }
 
 // ── Logout ─────────────────────────────────────────────────────────────────
@@ -1005,7 +1010,7 @@ function renderRulesPage() {
       const titre = r.slice(0, sep);
       const texte = r.slice(sep + 1);
       return `<div style="margin-bottom:16px">
-        <p style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:2px;color:var(--gold);margin-bottom:4px">${titre}</p>
+        <p style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:2px;color:var(--gold);margin-bottom:4px">${titre}</p>
         <p>${texte}</p>
       </div>`;
     }
@@ -1305,8 +1310,9 @@ function matchRow(m) {
 
 function renderPronoContent(tab) {
   setTimeout(startCountdowns, 50);
+  setTimeout(() => { if (window.twemoji) twemoji.parse(document.getElementById('prono-content'), {folder:'svg',ext:'.svg'}); }, 100);
   const c = document.getElementById('prono-content');
-  if (tab==='specials') { renderSpecials(c); setTimeout(startMainCountdown, 50); return; }
+  if (tab==='specials') { renderSpecials(c); setTimeout(startMainCountdown, 50); setTimeout(() => { if (window.twemoji) twemoji.parse(c, {folder:'svg',ext:'.svg'}); }, 150); return; }
   const isGroupes = tab === 'groupes';
   const ms = isGroupes
     ? ALL_MATCHES.filter(m=>m.phase.startsWith('Groupe')).sort((a,b)=>a.deadline-b.deadline)
@@ -1354,7 +1360,7 @@ function schedulePronoSave(matchId, side, val) {
 function renderSpecials(c) {
   const globalLock = new Date()>=new Date('2026-06-11T13:00:00'), sp=mySpecial;
   const teamsSorted = [...TEAMS].sort((a,b)=>a.localeCompare(b,'fr'));
-  const teamOpts = teamsSorted.map(t=>`<option value="${t}"${sp.winner===t?' selected':''}>${(TEAM_FLAGS[t]||'')+' '+t.toUpperCase()}</option>`).join('');
+  const teamOpts = teamsSorted.map(t=>`<option value="${t}"${sp.winner===t?' selected':''}>${t.toUpperCase()}</option>`).join('');
   if (globalLock) {
     c.innerHTML=`<div class="form-card">
       <div class="locked-badge" style="margin-bottom:12px">Pronostics spéciaux verrouillés</div>
@@ -1374,7 +1380,7 @@ function renderSpecials(c) {
     <select class="form-input" id="sp-winner" style="margin-bottom:16px" onchange="updatePronoBadge()"><option value="">-- Choisir --</option>${teamOpts}</select>
 
     <div class="section-title" style="font-size:1rem">Top 4 — Demi-finalistes</div>
-    ${[0,1,2,3].map(i=>`<select class="form-input" id="sp-top4-${i}" style="margin-bottom:6px"><option value="">-- Équipe ${i+1} --</option>${[...TEAMS].sort((a,b)=>a.localeCompare(b,'fr')).map(t=>`<option value="${t}"${(sp.top4||[])[i]===t?' selected':''}>${(TEAM_FLAGS[t]||'')+' '+t.toUpperCase()}</option>`).join('')}</select>`).join('')}
+    ${[0,1,2,3].map(i=>`<select class="form-input" id="sp-top4-${i}" style="margin-bottom:6px"><option value="">-- Équipe ${i+1} --</option>${[...TEAMS].sort((a,b)=>a.localeCompare(b,'fr')).map(t=>`<option value="${t}"${(sp.top4||[])[i]===t?' selected':''}>${t.toUpperCase()}</option>`).join('')}</select>`).join('')}
 
     <div style="margin-top:20px"></div>
     <div class="section-title" style="font-size:1rem">Nombre de buts marqués</div>
@@ -1406,6 +1412,7 @@ async function loadRanking() {
   if (currentPseudo) {
     const pos = ranked.findIndex(r=>r.pseudo===currentPseudo);
     document.getElementById('my-rank').textContent = pos>=0 ? '#'+(pos+1) : '–';
+  setTimeout(() => { if (window.twemoji) twemoji.parse(document.getElementById('ranking-table')||document.body, {folder:'svg',ext:'.svg'}); }, 50);
     const me = ranked.find(r=>r.pseudo===currentPseudo);
     if (me) { document.getElementById('my-total').textContent=me.points; document.getElementById('my-exact').textContent=me.exact; }
   }
@@ -1498,11 +1505,11 @@ async function saveAdminResults() {
   btn.innerHTML='Enregistrer les résultats'; btn.disabled=false;
 }
 function renderAdminSpecial() {
-  const tOpts=[...TEAMS].sort((a,b)=>a.localeCompare(b,'fr')).map(t=>`<option value="${t}"${specialResults.winner===t?' selected':''}>${(TEAM_FLAGS[t]||'')+' '+t.toUpperCase()}</option>`).join('');
+  const tOpts=[...TEAMS].sort((a,b)=>a.localeCompare(b,'fr')).map(t=>`<option value="${t}"${specialResults.winner===t?' selected':''}>${t.toUpperCase()}</option>`).join('');
   document.getElementById('real-winner').innerHTML=`<option value="">-- Choisir --</option>${tOpts}`;
   document.getElementById('real-goals').value = specialResults.totalgoals||'';
   document.getElementById('real-top4-inputs').innerHTML=[0,1,2,3].map(i=>
-    `<select class="form-input" id="real-top4-${i}" style="margin-bottom:6px"><option value="">-- Équipe ${i+1} --</option>${[...TEAMS].sort((a,b)=>a.localeCompare(b,'fr')).map(t=>`<option value="${t}"${(specialResults.top4||[])[i]===t?' selected':''}>${(TEAM_FLAGS[t]||'')+' '+t.toUpperCase()}</option>`).join('')}</select>`
+    `<select class="form-input" id="real-top4-${i}" style="margin-bottom:6px"><option value="">-- Équipe ${i+1} --</option>${[...TEAMS].sort((a,b)=>a.localeCompare(b,'fr')).map(t=>`<option value="${t}"${(specialResults.top4||[])[i]===t?' selected':''}>${t.toUpperCase()}</option>`).join('')}</select>`
   ).join('');
 }
 async function saveSpecialResults() {
