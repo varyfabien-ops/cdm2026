@@ -1248,6 +1248,8 @@ function computeMatchPoints(phase, pred, res) {
   return exact ? 3 : 1;
 }
 
+function updatePronoBadge() {} // stub - fonction supprimée
+
 function getMatchNumber(m) {
   const sorted = [...ALL_MATCHES].sort((a,b) => a.deadline - b.deadline);
   return sorted.findIndex(x => x.id === m.id) + 1;
@@ -1352,7 +1354,6 @@ function schedulePronoSave(matchId, side, val) {
       const el=document.getElementById('pst-'+matchId);
       if (el) el.innerHTML='<span style="color:var(--green);font-size:13px">✓ Enregistré</span>';
       updateDashboard();
-      updatePronoBadge();
     }
   },800);
 }
@@ -1376,7 +1377,7 @@ function renderSpecials(c) {
   </div>
   <div class="form-card">
     <div class="section-title" style="font-size:1rem">Vainqueur de la Coupe du Monde</div>
-    <select class="form-input" id="sp-winner" style="margin-bottom:16px" onchange="updatePronoBadge()"><option value="">-- Choisir --</option>${teamOpts}</select>
+    <select class="form-input" id="sp-winner" style="margin-bottom:16px"><option value="">-- Choisir --</option>${teamOpts}</select>
 
     <div class="section-title" style="font-size:1rem">Top 4 — Demi-finalistes</div>
     ${[0,1,2,3].map(i=>`<select class="form-input" id="sp-top4-${i}" style="margin-bottom:6px"><option value="">-- Équipe ${i+1} --</option>${[...TEAMS].sort((a,b)=>a.localeCompare(b,'fr')).map(t=>`<option value="${t}"${(sp.top4||[])[i]===t?' selected':''}>${t.toUpperCase()}</option>`).join('')}</select>`).join('')}
@@ -1384,7 +1385,7 @@ function renderSpecials(c) {
     <div style="margin-top:20px"></div>
     <div class="section-title" style="font-size:1rem">Nombre de buts marqués</div>
     <p style="font-size:14px;color:var(--text3);margin-bottom:8px">Total des buts marqués dans toute la compétition (104 matchs)</p>
-    <input class="form-input" id="sp-goals" type="number" min="0" max="999" placeholder="Ex: 185" value="${sp.totalgoals||''}" style="margin-bottom:16px" oninput="updatePronoBadge()">
+    <input class="form-input" id="sp-goals" type="number" min="0" max="999" placeholder="Ex: 185" value="${sp.totalgoals||''}" style="margin-bottom:16px">
     <button class="btn btn-gold" style="margin-top:4px" onclick="upsertSpecial()">Enregistrer</button>
   </div>`;
 }
