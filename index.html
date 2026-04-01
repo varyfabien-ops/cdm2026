@@ -1235,7 +1235,7 @@ function matchRow(m) {
       <div style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--text3)">${pred.home!==''?pred.home:'–'}</div>
       <div class="vs">–</div>
       <div style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--text3)">${pred.away!==''?pred.away:'–'}</div>
-      <div class="team-name right">${m.away}${TEAM_FLAGS[m.away]?' '+TEAM_FLAGS[m.away]:''}</div>
+      <div class="team-name right">${m.away}</div>
       <div class="match-date"><span class="locked-badge">Verrouillé</span></div>
     </div>`;
   }
@@ -1245,7 +1245,7 @@ function matchRow(m) {
     <input class="score-input" type="number" min="0" max="20" placeholder="–" value="${pred.home!==''?pred.home:''}" oninput="schedulePronoSave(${m.id},'home',this.value)" id="pi-${m.id}-h">
     <div class="vs">VS</div>
     <input class="score-input" type="number" min="0" max="20" placeholder="–" value="${pred.away!==''?pred.away:''}" oninput="schedulePronoSave(${m.id},'away',this.value)" id="pi-${m.id}-a">
-    <div class="team-name right">${m.away}${TEAM_FLAGS[m.away]?' '+TEAM_FLAGS[m.away]:''}</div>
+    <div class="team-name right">${m.away}</div>
     <div class="match-date" id="pst-${m.id}"><span class="countdown" data-deadline="${new Date(m.deadline).getTime()}"></span><br><span style="color:var(--text3);font-size:13px">${new Date(m.deadline).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})} à ${new Date(m.deadline).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span></div>
   </div>`;
 }
@@ -1408,7 +1408,7 @@ async function renderAdminMatches() {
         <input class="score-input" type="number" min="0" max="30" placeholder="–" id="res-${m.id}-h" value="${res.home!==undefined?res.home:''}">
         <div class="vs" style="font-size:16px">–</div>
         <input class="score-input" type="number" min="0" max="30" placeholder="–" id="res-${m.id}-a" value="${res.away!==undefined?res.away:''}">
-        <div class="team-name right" style="font-size:14px">${m.away}${TEAM_FLAGS[m.away]?'\u00A0'+TEAM_FLAGS[m.away]:''}</div>
+        <div class="team-name right" style="font-size:14px">${m.away}</div>
       </div>`;
     });
     html+='</div>';
