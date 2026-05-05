@@ -2023,15 +2023,15 @@ async function takeRankingSnapshot() {
 
   const ranked = Object.entries(byPseudo).map(([pseudo, d]) => {
     const sc = computeScore(d.pronos, d.special);
-    return { pseudo, points: sc.points };
-  }).sort((a,b) => b.points - a.points);
+    return { pseudo, points: sc.points, exact: sc.exact || 0 };
+  }).sort((a,b) => b.points - a.points || b.exact - a.exact);
 
   const today = new Date().toISOString().slice(0,10);
   // Calculer le numéro du dernier match avec résultat
   const sortedMatches = [...ALL_MATCHES].sort((a,b) => a.deadline - b.deadline);
   const lastMatchWithResult = sortedMatches.filter(m => allResults[m.id]).pop();
   const matchNumber = lastMatchWithResult ? sortedMatches.findIndex(m => m.id === lastMatchWithResult.id) + 1 : 0;
-  const rows = ranked.map((r,i) => ({ pseudo:r.pseudo, points:r.points, position:i+1, snapshot_date:today, match_number:matchNumber }));
+  const rows = ranked.map((r,i) => ({ pseudo:r.pseudo, points:r.points, exact:r.exact, position:i+1, snapshot_date:today, match_number:matchNumber }));
   await sb.from('ranking_snapshots').delete().eq('snapshot_date', today);
   await sb.from('ranking_snapshots').insert(rows);
   console.log('Snapshot pris :', today, 'après match', matchNumber, rows.length, 'joueurs');
