@@ -2009,6 +2009,10 @@ function startMainCountdown() {
 // ── Snapshot automatique du classement ────────────────────────────────────
 async function takeRankingSnapshot() {
   await loadResults();
+  // Charger aussi les resultats speciaux pour le calcul
+  const { data: spData } = await sb.from('special_results').select('*').limit(1);
+  specialResults = spData && spData[0] ? spData[0] : {};
+
   const { data: allPronos } = await sb.from('pronos').select('pseudo,match_id,home,away,special');
   const { data: players } = await sb.from('players').select('pseudo');
   if (!players || !players.length) return;
@@ -2027,7 +2031,7 @@ async function takeRankingSnapshot() {
   }).sort((a,b) => b.points - a.points || b.exact - a.exact);
 
   const today = new Date().toISOString().slice(0,10);
-  // Calculer le numéro du dernier match avec résultat
+  // Calculer le numero du dernier match avec resultat
   const sortedMatches = [...ALL_MATCHES].sort((a,b) => a.deadline - b.deadline);
   const lastMatchWithResult = sortedMatches.filter(m => allResults[m.id]).pop();
   const matchNumber = lastMatchWithResult ? sortedMatches.findIndex(m => m.id === lastMatchWithResult.id) + 1 : 0;
