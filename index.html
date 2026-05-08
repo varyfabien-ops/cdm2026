@@ -1330,7 +1330,7 @@ function schedulePronoSave(matchId, side, val) {
 function renderSpecials(c) {
   const globalLock = new Date()>=new Date('2026-06-11T13:00:00'), sp=mySpecial;
   const teamsSorted = [...TEAMS].sort((a,b)=>a.localeCompare(b,'fr'));
-  const teamOpts = teamsSorted.map(t=>`<option value="${t}"${sp.winner===t?' selected':''}>${(TEAM_FLAGS[t]||'')+' '+t.toUpperCase()}</option>`).join('');
+  const teamOpts = teamsSorted.map(t=>`<option value="${t}"${sp.winner===t?' selected':''}>${t.toUpperCase()}</option>`).join('');
   if (globalLock) {
     c.innerHTML=`<div class="form-card">
       <div class="locked-badge" style="margin-bottom:12px">Pronostics spéciaux verrouillés</div>
@@ -1350,7 +1350,7 @@ function renderSpecials(c) {
     <select class="form-input" id="sp-winner" style="margin-bottom:16px"><option value="">-- Choisir --</option>${teamOpts}</select>
 
     <div class="section-title" style="font-size:1rem">Top 4 — Demi-finalistes</div>
-    ${[0,1,2,3].map(i=>`<select class="form-input" id="sp-top4-${i}" style="margin-bottom:6px"><option value="">-- Équipe ${i+1} --</option>${[...TEAMS].sort((a,b)=>a.localeCompare(b,'fr')).map(t=>`<option value="${t}"${(sp.top4||[])[i]===t?' selected':''}>${(TEAM_FLAGS[t]||'')+' '+t.toUpperCase()}</option>`).join('')}</select>`).join('')}
+    ${[0,1,2,3].map(i=>`<select class="form-input" id="sp-top4-${i}" style="margin-bottom:6px"><option value="">-- Équipe ${i+1} --</option>${[...TEAMS].sort((a,b)=>a.localeCompare(b,'fr')).map(t=>`<option value="${t}"${(sp.top4||[])[i]===t?' selected':''}>${t.toUpperCase()}</option>`).join('')}</select>`).join('')}
 
     <div style="margin-top:20px"></div>
     <div class="section-title" style="font-size:1rem">Nombre de buts marqués</div>
@@ -1482,11 +1482,11 @@ async function saveAdminResults() {
   btn.innerHTML='Enregistrer les résultats'; btn.disabled=false;
 }
 function renderAdminSpecial() {
-  const tOpts=[...TEAMS].sort((a,b)=>a.localeCompare(b,'fr')).map(t=>`<option value="${t}"${specialResults.winner===t?' selected':''}>${(TEAM_FLAGS[t]||'')+' '+t.toUpperCase()}</option>`).join('');
+  const tOpts=[...TEAMS].sort((a,b)=>a.localeCompare(b,'fr')).map(t=>`<option value="${t}"${specialResults.winner===t?' selected':''}>${t.toUpperCase()}</option>`).join('');
   document.getElementById('real-winner').innerHTML=`<option value="">-- Choisir --</option>${tOpts}`;
   document.getElementById('real-goals').value = specialResults.totalgoals||'';
   document.getElementById('real-top4-inputs').innerHTML=[0,1,2,3].map(i=>
-    `<select class="form-input" id="real-top4-${i}" style="margin-bottom:6px"><option value="">-- Équipe ${i+1} --</option>${[...TEAMS].sort((a,b)=>a.localeCompare(b,'fr')).map(t=>`<option value="${t}"${(specialResults.top4||[])[i]===t?' selected':''}>${(TEAM_FLAGS[t]||'')+' '+t.toUpperCase()}</option>`).join('')}</select>`
+    `<select class="form-input" id="real-top4-${i}" style="margin-bottom:6px"><option value="">-- Équipe ${i+1} --</option>${[...TEAMS].sort((a,b)=>a.localeCompare(b,'fr')).map(t=>`<option value="${t}"${(specialResults.top4||[])[i]===t?' selected':''}>${t.toUpperCase()}</option>`).join('')}</select>`
   ).join('');
 }
 async function saveSpecialResults() {
