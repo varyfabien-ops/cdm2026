@@ -1377,7 +1377,12 @@ async function loadRanking() {
   if (snapshots && snapshots.length > 0) {
     const lastMatch = Math.max(...snapshots.map(s => s.match_number||0));
     const lastSnaps = snapshots.filter(s => s.match_number === lastMatch);
-    ranked = lastSnaps.map(s => ({ pseudo: s.pseudo, points: s.points, exact: s.exact||0, count: counts[s.pseudo]||0 }));
+    // Dédoublonner par pseudo (garder le meilleur score en cas de doublon)
+    const dedupMap = {};
+    lastSnaps.forEach(s => {
+      if (!dedupMap[s.pseudo] || s.points > dedupMap[s.pseudo].points) dedupMap[s.pseudo] = s;
+    });
+    ranked = Object.values(dedupMap).map(s => ({ pseudo: s.pseudo, points: s.points, exact: s.exact||0, count: counts[s.pseudo]||0 }));
     (players||[]).forEach(p => {
       if (!ranked.find(r => r.pseudo === p.pseudo))
         ranked.push({ pseudo: p.pseudo, points: 0, exact: 0, count: counts[p.pseudo]||0 });
@@ -2036,7 +2041,9 @@ async function takeRankingSnapshot() {
   const lastMatchWithResult = sortedMatches.filter(m => allResults[m.id]).pop();
   const matchNumber = lastMatchWithResult ? sortedMatches.findIndex(m => m.id === lastMatchWithResult.id) + 1 : 0;
   const rows = ranked.map((r,i) => ({ pseudo:r.pseudo, points:r.points, exact:r.exact, position:i+1, snapshot_date:today, match_number:matchNumber }));
+  // Supprimer les anciens snapshots pour ce match_number ET cette date
   await sb.from('ranking_snapshots').delete().eq('snapshot_date', today);
+  await sb.from('ranking_snapshots').delete().eq('match_number', matchNumber);
   await sb.from('ranking_snapshots').insert(rows);
   console.log('Snapshot pris :', today, 'après match', matchNumber, rows.length, 'joueurs');
 }
