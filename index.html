@@ -772,6 +772,35 @@ function showToast(msg, type='') {
 function isLocked(match) {
   return new Date() >= new Date(match.deadline);
 }
+
+// ── Timer de verrouillage temps réel ──────────────────────────────────────
+function checkAndLockExpiredPronos() {
+  if (!ALL_MATCHES || !ALL_MATCHES.length) return;
+  ALL_MATCHES.forEach(m => {
+    if (!isLocked(m)) return;
+    // Verrouiller tous les inputs de ce match
+    const row = document.querySelector(`[data-match-id="${m.id}"]`);
+    if (!row) return;
+    row.querySelectorAll('input[type="number"]').forEach(inp => {
+      if (!inp.disabled) {
+        inp.disabled = true;
+        inp.style.opacity = '0.5';
+        inp.style.cursor = 'not-allowed';
+      }
+    });
+  });
+  // Verrouiller les spéciaux si dépassé
+  const specialLocked = new Date() >= new Date('2026-06-11T21:00:00');
+  if (specialLocked) {
+    document.querySelectorAll('#page-pronostics select, #page-pronostics input').forEach(el => {
+      const section = el.closest('.special-section');
+      if (section) { el.disabled = true; el.style.opacity = '0.5'; }
+    });
+  }
+}
+// Lancer le timer toutes les 30 secondes
+setInterval(checkAndLockExpiredPronos, 30000);
+
 function fmtDate(d) { return new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }
 function initials(s) { if (!s) return '?'; return s.split(' ').filter(Boolean).map(w => w[0]).join('').toUpperCase().slice(0,3); }
 
@@ -881,14 +910,6 @@ async function onLoginSuccess(pseudo) {
         document.getElementById('my-exact').textContent = me.exact || 0;
       }
     });
-  // Navigation accueil — immédiate, avant tout chargement async
-  const goAccueil = () => {
-    document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.querySelector('[data-page="accueil"]').classList.add('active');
-    document.getElementById('page-accueil').classList.add('active');
-  };
-  goAccueil();
   // Chargement parallèle
   await Promise.all([loadAppConfig(), loadResults(), loadMyPronos()]);
   await loadStats();
@@ -898,7 +919,15 @@ async function onLoginSuccess(pseudo) {
   checkNewResults();
   loadRanking();
   if (window.twemoji) twemoji.parse(document.body, {folder:'svg',ext:'.svg'});
+  // Navigation accueil — forcé en dernier ET en premier pour éviter tout override
+  const goAccueil = () => {
+    document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelector('[data-page="accueil"]').classList.add('active');
+    document.getElementById('page-accueil').classList.add('active');
+  };
   goAccueil();
+  setTimeout(goAccueil, 0);
 }
 
 // ── Logout ─────────────────────────────────────────────────────────────────
@@ -1028,6 +1057,12 @@ async function loadStats() {
 }
 async function upsertProno(matchId, home, away) {
   if (!sbReady||!currentPseudo) return;
+  // Vérifier la deadline au moment de la sauvegarde
+  const match = ALL_MATCHES.find(m => m.id === matchId);
+  if (match && isLocked(match)) {
+    showToast('⛔ Ce pronostic est verrouillé — la date limite est dépassée.', 'error');
+    return;
+  }
   await sb.from('pronos').upsert({ pseudo:currentPseudo, match_id:matchId, home, away }, { onConflict:'pseudo,match_id' });
 }
 async function upsertSpecial() {
@@ -1245,7 +1280,6 @@ function switchPronoTab(tab, btn) {
   renderPronoContent(tab);
 }
 function updatePronoBadge() {}
-function checkNewResults() {}
 
 function getMatchNumber(m) {
   const sorted = [...ALL_MATCHES].sort((a,b) => a.deadline - b.deadline);
@@ -1264,7 +1298,7 @@ function matchRow(m) {
     <span style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;letter-spacing:1px;color:var(--text3)">MATCH ${matchNum}</span>
   </div>`;
   if (locked) {
-    return `<div class="match-row" style="padding-top:2px">
+    return `<div class="match-row" data-match-id="${m.id}" style="padding-top:2px">
       ${gl}
       <div class="team-name left">${flag(m.home)}${m.home}</div>
       <div style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--text3)">${pred.home!==''?pred.home:'–'}</div>
@@ -1274,7 +1308,7 @@ function matchRow(m) {
       <div class="match-date"><span class="locked-badge">Verrouillé</span></div>
     </div>`;
   }
-  return `<div class="match-row" style="padding-top:2px">
+  return `<div class="match-row" data-match-id="${m.id}" style="padding-top:2px">
     ${gl}
     <div class="team-name left">${flag(m.home)}${m.home}</div>
     <input class="score-input" type="number" min="0" max="20" placeholder="–" value="${pred.home!==''?pred.home:''}" oninput="schedulePronoSave(${m.id},'home',this.value)" id="pi-${m.id}-h">
