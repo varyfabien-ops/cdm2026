@@ -165,20 +165,13 @@ select.form-input{appearance:none;cursor:pointer}
 
 @media(max-width:600px){
   /* ── NAV MOBILE : 2 lignes ── */
-  nav{flex-wrap:wrap;padding:0;gap:0;position:sticky;top:0;z-index:100;background:var(--bg2)}
-  nav .nav-tab{padding:10px 4px;font-size:10px;white-space:nowrap;text-align:center;border-bottom:2px solid rgba(255,255,255,0.06);letter-spacing:0.5px}
+  nav{display:block;position:sticky;top:0;z-index:100;background:var(--bg2)}
+  nav .nav-row{display:flex;width:100%}
+  nav .nav-tab{flex:1;padding:10px 2px;font-size:11px;white-space:nowrap;text-align:center;border-bottom:2px solid rgba(255,255,255,0.06);letter-spacing:0.3px}
   nav .nav-tab.active{border-bottom-color:var(--gold)}
-  /* Ligne 1 : ACCUEIL, PRONOSTICS, CLASSEMENT */
-  nav .nav-tab[data-page="accueil"]{flex:0 0 33.333%;order:1}
-  nav .nav-tab[data-page="pronostics"]{flex:0 0 33.333%;order:2}
-  nav .nav-tab[data-page="classement"]{flex:0 0 33.333%;order:3}
-  /* Ligne 2 : RÈGLEMENT, STATISTIQUES, pill */
-  nav .nav-tab[data-page="regles"]{flex:0 0 40%;order:4}
-  nav .nav-tab[data-page="stats"]{flex:0 0 40%;order:5}
-  nav .nav-tab[data-page="admin"]{flex:0 0 20%;order:4;font-size:9px}
-  nav .user-pill{flex:0 0 20%;order:6;margin:4px 8px 4px 0;font-size:12px;padding:5px 8px;align-self:center;justify-content:center}
-  nav .user-pill .user-avatar{width:24px;height:24px;font-size:10px;flex-shrink:0}
-  nav .user-pill #user-pill-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70px;font-size:11px}
+  nav .user-pill{flex:0 0 auto;margin:3px 8px;align-self:center;font-size:11px;padding:4px 8px}
+  nav .user-pill .user-avatar{width:22px;height:22px;font-size:10px;flex-shrink:0}
+  nav .user-pill #user-pill-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:65px;font-size:11px}
   /* ── HERO ── */
   .hero-inner{padding:1rem 0.75rem 0.75rem}
   .hero-logo img{max-width:110px}
@@ -304,15 +297,19 @@ const ADMIN_PSEUDO = 'Admin CSE';
   </div>
 
   <nav>
-    <button class="nav-tab active" data-page="accueil"><span class="tab-full">ACCUEIL</span><span class="tab-short">ACCUEIL</span></button>
-    <button class="nav-tab" data-page="pronostics"><span class="tab-full">PRONOSTICS</span><span class="tab-short">PRONOS</span></button>
-    <button class="nav-tab" data-page="classement"><span class="tab-full">CLASSEMENT</span><span class="tab-short">CLASST.</span></button>
-    <button class="nav-tab" data-page="regles"><span class="tab-full">RÈGLEMENT</span><span class="tab-short">RÈGLES</span></button>
-    <button class="nav-tab" data-page="stats"><span class="tab-full">STATISTIQUES</span><span class="tab-short">STATS</span></button>
-    <button class="nav-tab" data-page="admin" id="nav-admin-btn" style="display:none"><span class="tab-full">ADMIN</span><span class="tab-short">ADMIN</span></button>
-    <div class="user-pill" id="user-pill" onclick="goToPage('compte')">
-      <div class="user-avatar" id="user-avatar">?</div>
-      <span id="user-pill-name">–</span>
+    <div class="nav-row nav-row-1">
+      <button class="nav-tab active" data-page="accueil">ACCUEIL</button>
+      <button class="nav-tab" data-page="pronostics">PRONOSTICS</button>
+      <button class="nav-tab" data-page="classement">CLASSEMENT</button>
+    </div>
+    <div class="nav-row nav-row-2">
+      <button class="nav-tab" data-page="regles">RÈGLEMENT</button>
+      <button class="nav-tab" data-page="stats">STATISTIQUES</button>
+      <button class="nav-tab" data-page="admin" id="nav-admin-btn" style="display:none">ADMIN</button>
+      <div class="user-pill" id="user-pill" onclick="goToPage('compte')">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <span id="user-pill-name">–</span>
+      </div>
     </div>
   </nav>
 
