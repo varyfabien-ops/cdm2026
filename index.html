@@ -67,7 +67,8 @@ body{font-family:'Aptos','Outfit',system-ui,sans-serif;background:var(--bg);colo
 .hero-stat span{font-size:12px;color:var(--text3);letter-spacing:1px;text-transform:uppercase}
 
 /* ── NAV ── */
-nav{display:flex;align-items:center;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;position:sticky;top:0;z-index:100;backdrop-filter:blur(10px)}
+nav{display:flex;align-items:center;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;position:sticky;top:0;z-index:100;backdrop-filter:blur(10px);flex-wrap:nowrap}
+.nav-row{display:contents}
 nav::-webkit-scrollbar{display:none}
 .tab-short{display:none}
 nav button.nav-tab{flex:1;min-width:80px;padding:14px 8px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text2);font-family:'Aptos','Outfit',system-ui,sans-serif;font-size:15px;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap}
@@ -114,7 +115,7 @@ select.form-input{appearance:none;cursor:pointer}
 
 /* ── RANKING ── */
 .ranking-card{background:var(--bg2);border:1px solid var(--gold);border-radius:12px;overflow:hidden}
-.rank-row{display:grid;grid-template-columns:50px 1fr 90px 110px 110px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border);transition:background .15s}
+.rank-row{display:grid;grid-template-columns:50px 1fr 90px 110px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border);transition:background .15s}
 .rank-row:last-child{border-bottom:none}
 .rank-row.header{background:var(--bg3);font-size:13px;color:var(--text3);text-transform:uppercase;letter-spacing:1px}
 .rank-row:not(.header):hover{background:var(--bg3)}
@@ -190,7 +191,7 @@ select.form-input{appearance:none;cursor:pointer}
   .match-row{grid-template-columns:1fr 44px auto 44px 1fr;gap:4px}
   .team-name{font-size:15px}
   .score-input{padding:8px 4px;font-size:1.2rem}
-  .rank-row{grid-template-columns:32px 1fr 52px 44px 44px;padding:8px 8px;font-size:13px}
+  .rank-row{grid-template-columns:32px 1fr 52px 52px;padding:8px 8px;font-size:13px}
   .rank-row.header{font-size:10px;letter-spacing:0.5px;line-height:1.3}
   .rank-exact{font-size:13px}
   .rank-pseudo{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
@@ -1489,7 +1490,7 @@ async function loadRanking() {
   }
   document.getElementById('stat-participants').textContent = ranked.length;
 
-  let html=`<div class="rank-row header"><div></div><div>Participant</div><div style="text-align:center">Points</div><div style="text-align:center">Scores Exacts</div><div style="text-align:center">Pronostics</div></div>`;
+  let html=`<div class="rank-row header"><div></div><div>Participant</div><div style="text-align:center">Points</div><div style="text-align:center">Scores Exacts</div></div>`;
   ranked.forEach((r,i)=>{
     const medals=['🥇','🥈','🥉'];
     const cls = i===0?'gold':i===1?'silver':i===2?'bronze':'';
@@ -1499,7 +1500,6 @@ async function loadRanking() {
       <div class="rank-pseudo">${r.pseudo}${isMe?' <span style="font-size:13px;color:var(--gold)">(moi)</span>':''}</div>
       <div class="rank-pts">${r.points}</div>
       <div class="rank-exact">${r.exact}</div>
-      <div class="rank-num2">${r.count}</div>
     </div>`;
   });
   document.getElementById('ranking-table').innerHTML=html;
