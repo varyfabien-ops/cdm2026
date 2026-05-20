@@ -76,6 +76,8 @@ nav button.nav-tab.active{color:var(--gold);border-bottom-color:var(--gold);text
 nav button.nav-tab:hover:not(.active){color:var(--text);background:var(--bg3)}
 
 /* ── PAGES ── */
+
+#dashboard-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.5rem}
 .page{display:none;padding:1.5rem;max-width:900px;margin:0 auto}
 .page.active{display:block;animation:fadeSlide .25s ease}
 @keyframes fadeSlide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
@@ -334,7 +336,7 @@ const ADMIN_PSEUDO = 'Admin CSE';
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.5rem" id="dashboard-cards">
+    <div id="dashboard-cards">
       <div class="form-card" style="margin-bottom:0;text-align:center">
         <div style="font-size:13px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">⏳ Prochain pronostic</div>
         <div id="next-match-card" style="font-size:15px;color:var(--text2)">Chargement...</div>
