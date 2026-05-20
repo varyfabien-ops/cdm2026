@@ -166,9 +166,17 @@ select.form-input{appearance:none;cursor:pointer}
 @media(max-width:600px){
   /* ── NAV MOBILE : 2 lignes ── */
   nav{flex-wrap:wrap;padding:0;gap:0;position:sticky;top:0;z-index:100}
-  nav .nav-tab{flex:1 1 calc(33% - 1px);min-width:0;padding:9px 2px;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;border-bottom:2px solid rgba(255,255,255,0.06)}
+  nav .nav-tab{min-width:0;padding:9px 2px;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;border-bottom:2px solid rgba(255,255,255,0.06)}
   nav .nav-tab.active{border-bottom-color:var(--gold)}
-  nav .user-pill{order:99;margin:4px 10px 4px auto;flex-shrink:0;font-size:13px;padding:5px 10px}
+  /* Ligne 1 : ACCUEIL, PRONOSTICS, CLASSEMENT — flex:1 chacun */
+  nav .nav-tab[data-page="accueil"],
+  nav .nav-tab[data-page="pronostics"],
+  nav .nav-tab[data-page="classement"]{flex:1 1 33%}
+  /* Ligne 2 : REGLEMENT, STATISTIQUES — flex:1 chacun + pill */
+  nav .nav-tab[data-page="regles"],
+  nav .nav-tab[data-page="stats"]{flex:1 1 40%}
+  nav .nav-tab[data-page="admin"]{flex:1 1 20%}
+  nav .user-pill{flex:0 0 auto;margin:4px 10px 4px auto;font-size:13px;padding:5px 10px}
   nav .user-pill .user-avatar{width:26px;height:26px;font-size:11px}
   /* ── HERO ── */
   .hero-inner{padding:1rem 0.75rem 0.75rem}
@@ -346,7 +354,7 @@ const ADMIN_PSEUDO = 'Admin CSE';
         Pronostique les résultats de chaque rencontre et tente de terminer en tête du classement !
       </p>
       <p style="font-size:15px;color:var(--text2);line-height:1.9;margin-top:10px">
-        👉 Renseigne tes pronostics dans l'onglet <strong style="color:var(--text)">Mes pronostics</strong> avant le coup d'envoi de chaque match.<br>
+        👉 Renseigne tes pronostics dans l'onglet <strong style="color:var(--text)">PRONOSTICS</strong> avant le coup d'envoi de chaque match.<br>
         👉 Consulte le <strong style="color:var(--text)">CLASSEMENT</strong> pour suivre l'évolution des participants tout au long du tournoi.
       </p>
       <p style="font-size:15px;color:var(--text2);line-height:1.9;margin-top:10px">
