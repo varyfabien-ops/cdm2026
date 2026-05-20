@@ -69,6 +69,7 @@ body{font-family:'Aptos','Outfit',system-ui,sans-serif;background:var(--bg);colo
 /* ── NAV ── */
 nav{display:flex;align-items:center;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;position:sticky;top:0;z-index:100;backdrop-filter:blur(10px)}
 nav::-webkit-scrollbar{display:none}
+.tab-short{display:none}
 nav button.nav-tab{flex:1;min-width:80px;padding:14px 8px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text2);font-family:'Aptos','Outfit',system-ui,sans-serif;font-size:15px;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap}
 nav button.nav-tab.active{color:var(--gold);border-bottom-color:var(--gold);text-shadow:0 0 12px rgba(251,191,36,0.4)}
 nav button.nav-tab:hover:not(.active){color:var(--text);background:var(--bg3)}
@@ -189,6 +190,11 @@ select.form-input{appearance:none;cursor:pointer}
   .score-input{padding:8px 4px;font-size:1.2rem}
   .rank-row{grid-template-columns:36px 1fr 60px 50px 50px;padding:10px 10px}
   nav .nav-tab{font-size:10px;padding:8px 2px}
+  /* Mascottes cachées sur mobile */
+  #mascot-left, #mascot-right{display:none !important}
+  /* Labels courts sur mobile */
+  .tab-full{display:none}
+  .tab-short{display:inline}
 }
 </style>
 </head>
@@ -289,12 +295,12 @@ const ADMIN_PSEUDO = 'Admin CSE';
   </div>
 
   <nav>
-    <button class="nav-tab active" data-page="accueil">ACCUEIL</button>
-    <button class="nav-tab" data-page="pronostics">PRONOSTICS</button>
-    <button class="nav-tab" data-page="classement">CLASSEMENT</button>
-    <button class="nav-tab" data-page="regles">RÈGLEMENT</button>
-    <button class="nav-tab" data-page="stats">STATISTIQUES</button>
-    <button class="nav-tab" data-page="admin" id="nav-admin-btn" style="display:none">ADMIN</button>
+    <button class="nav-tab active" data-page="accueil"><span class="tab-full">ACCUEIL</span><span class="tab-short">ACCUEIL</span></button>
+    <button class="nav-tab" data-page="pronostics"><span class="tab-full">PRONOSTICS</span><span class="tab-short">PRONOS</span></button>
+    <button class="nav-tab" data-page="classement"><span class="tab-full">CLASSEMENT</span><span class="tab-short">CLASST.</span></button>
+    <button class="nav-tab" data-page="regles"><span class="tab-full">RÈGLEMENT</span><span class="tab-short">RÈGLES</span></button>
+    <button class="nav-tab" data-page="stats"><span class="tab-full">STATISTIQUES</span><span class="tab-short">STATS</span></button>
+    <button class="nav-tab" data-page="admin" id="nav-admin-btn" style="display:none"><span class="tab-full">ADMIN</span><span class="tab-short">ADMIN</span></button>
     <div class="user-pill" id="user-pill" onclick="goToPage('compte')">
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-pill-name">–</span>
@@ -340,7 +346,7 @@ const ADMIN_PSEUDO = 'Admin CSE';
         Pronostique les résultats de chaque rencontre et tente de terminer en tête du classement !
       </p>
       <p style="font-size:15px;color:var(--text2);line-height:1.9;margin-top:10px">
-        👉 Renseigne tes pronostics dans l'onglet <strong style="color:var(--text)">PRONOSTICS</strong> avant le coup d'envoi de chaque match.<br>
+        👉 Renseigne tes pronostics dans l'onglet <strong style="color:var(--text)">Mes pronostics</strong> avant le coup d'envoi de chaque match.<br>
         👉 Consulte le <strong style="color:var(--text)">CLASSEMENT</strong> pour suivre l'évolution des participants tout au long du tournoi.
       </p>
       <p style="font-size:15px;color:var(--text2);line-height:1.9;margin-top:10px">
