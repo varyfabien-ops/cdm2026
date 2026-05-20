@@ -168,6 +168,7 @@ select.form-input{appearance:none;cursor:pointer}
   /* ── NAV MOBILE : 2 lignes ── */
   nav{display:block;position:sticky;top:0;z-index:100;background:var(--bg2)}
   nav .nav-row{display:flex;width:100%}
+  #dashboard-cards{grid-template-columns:1fr}
   nav .nav-tab{flex:1;padding:10px 2px;font-size:11px;white-space:nowrap;text-align:center;border-bottom:2px solid rgba(255,255,255,0.06);letter-spacing:0.3px}
   nav .nav-tab.active{border-bottom-color:var(--gold)}
   nav .user-pill{flex:0 0 auto;margin:3px 8px;align-self:center;font-size:11px;padding:4px 8px}
@@ -187,7 +188,6 @@ select.form-input{appearance:none;cursor:pointer}
   .page{padding:1rem 0.75rem}
 }
 @media(max-width:500px){
-  #dashboard-cards{grid-template-columns:1fr}
   .match-row{grid-template-columns:1fr 44px auto 44px 1fr;gap:4px}
   .team-name{font-size:15px}
   .score-input{padding:8px 4px;font-size:1.2rem}
