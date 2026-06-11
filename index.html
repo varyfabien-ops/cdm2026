@@ -955,7 +955,6 @@ async function onLoginSuccess(pseudo) {
   updateDashboard();
   renderNextMatch();
   renderLastResult();
-  checkNewResults();
   loadRanking();
   if (window.twemoji) twemoji.parse(document.body, {folder:'svg',ext:'.svg'});
   // Navigation accueil — forcé en dernier ET en premier pour éviter tout override
@@ -968,7 +967,6 @@ async function onLoginSuccess(pseudo) {
   goAccueil();
   setTimeout(goAccueil, 0);
 }
-function checkNewResults() {}
 
 // ── Logout ─────────────────────────────────────────────────────────────────
 function doLogout() {
