@@ -1406,7 +1406,7 @@ function schedulePronoSave(matchId, side, val) {
   },800);
 }
 function renderSpecials(c) {
-  const globalLock = new Date()>=new Date('2026-06-11T13:00:00'), sp=mySpecial;
+  const globalLock = new Date()>=new Date('2026-06-11T21:00:00'), sp=mySpecial;
   const teamsSorted = [...TEAMS].sort((a,b)=>a.localeCompare(b,'fr'));
   const teamOpts = teamsSorted.map(t=>`<option value="${t}"${sp.winner===t?' selected':''}>${t.toUpperCase()}</option>`).join('');
   if (globalLock) {
