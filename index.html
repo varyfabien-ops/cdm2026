@@ -1219,7 +1219,7 @@ function renderNextMatch() {
       ${flag(next.home)}${next.home} <span style="color:var(--text3)">vs</span> ${next.away}${flagInline(next.away)}
     </div>
     <div style="font-size:13px;color:var(--text3);margin-bottom:6px">${next.phase}</div>
-    <div style="font-size:14px;color:var(--gold)">${countdown}</div>
+    <div class="countdown" data-deadline="${dl}" style="font-size:14px;color:var(--gold)">${countdown}</div>
     <button class="btn btn-gold btn-sm" style="margin-top:8px;font-size:13px;padding:5px 12px" onclick="goToPronoTab('${next.phase}')">Saisir →</button>`;
 }
 
