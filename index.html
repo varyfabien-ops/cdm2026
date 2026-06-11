@@ -1516,12 +1516,12 @@ function adminLogin() {
     showToast('Connecté en admin');
   } else showToast('Mot de passe incorrect','error');
 }
-function adminTab(btn,id) {
+async function adminTab(btn,id) {
   document.querySelectorAll('#admin-sub-tabs button').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   ['admin-results','admin-special','admin-participants','admin-edit-ko','admin-edit-deadlines','admin-edit-group-deadlines','admin-edit-visuel','admin-edit-regles','admin-settings'].forEach(s=>document.getElementById(s).style.display='none');
   document.getElementById(id).style.display='block';
-  if (id==='admin-participants') renderAdminParticipants();
+  if (id==='admin-participants') await renderAdminParticipants();
   if (id==='admin-edit-ko') openAdminKo();
   if (id==='admin-edit-deadlines') openAdminDeadlines();
   if (id==='admin-edit-group-deadlines') openAdminGroupDeadlines();
