@@ -1583,7 +1583,7 @@ async function renderAdminParticipants() {
   document.getElementById('admin-participants-list').innerHTML='<p style="color:var(--text3);font-size:16px">Chargement...</p>';
   const { data:players } = await sb.from('players').select('pseudo,created_at');
   if (!players||!players.length) { document.getElementById('admin-participants-list').innerHTML='<p style="color:var(--text3);font-size:16px">Aucun joueur.</p>'; return; }
-  const { data:pCounts } = await sb.from('pronos').select('pseudo').neq('match_id','special');
+  const { data:pCounts } = await sb.from('pronos').select('pseudo').neq('match_id','special').limit(20000);
   const cntMap={};
   (pCounts||[]).forEach(r=>{ cntMap[r.pseudo]=(cntMap[r.pseudo]||0)+1; });
   let html=`<div class="ranking-card" style="border:1px solid var(--gold);border-radius:12px;overflow:hidden"><div class="rank-row header" style="grid-template-columns:36px 1fr 70px 90px 180px"><div></div><div>Nom</div><div style="text-align:center">Pronos</div><div style="text-align:center">Inscrit le</div><div>Actions</div></div>`;
