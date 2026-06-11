@@ -954,6 +954,7 @@ async function onLoginSuccess(pseudo) {
   await loadStats();
   updateDashboard();
   renderNextMatch();
+  startCountdowns();
   renderLastResult();
   loadRanking();
   if (window.twemoji) twemoji.parse(document.body, {folder:'svg',ext:'.svg'});
