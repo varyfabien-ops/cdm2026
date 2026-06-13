@@ -1276,6 +1276,8 @@ async function updateDashboard() {
   renderNextMatch();
   renderLastResult();
   renderProgression();
+  const matchsRestants = ALL_MATCHES && ALL_MATCHES.length ? ALL_MATCHES.filter(m => !isLocked(m)).length : 104;
+  document.getElementById('stat-matchs').textContent = matchsRestants;
   if (!currentPseudo) return;
   const sc = computeScore(myPronos, mySpecial);
   document.getElementById('my-total').textContent = sc.points;
