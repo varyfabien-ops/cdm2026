@@ -1339,14 +1339,31 @@ function matchRow(m) {
     <span style="font-family:'Bebas Neue',sans-serif;font-size:0.85rem;letter-spacing:1px;color:var(--text3)">MATCH ${matchNum}</span>
   </div>`;
   if (locked) {
+    const res = allResults[m.id];
+    let badge = '';
+    let predColor = 'var(--text3)';
+    if (res && pred.home !== '' && pred.away !== '') {
+      const mult = PHASE_MULT[m.phase] || 1;
+      if (Number(pred.home)===Number(res.home) && Number(pred.away)===Number(res.away)) {
+        badge = `<span style="color:var(--green);font-size:12px;font-weight:600">✓ Score exact — ${3*mult} pts</span>`;
+        predColor = 'var(--green)';
+      } else if (Math.sign(pred.home-pred.away)===Math.sign(res.home-res.away)) {
+        badge = `<span style="color:var(--gold);font-size:12px;font-weight:600">~ Bon résultat — ${1*mult} pt</span>`;
+        predColor = 'var(--gold)';
+      } else {
+        badge = `<span style="color:var(--red);font-size:12px">✗ Raté — 0 pt</span>`;
+        predColor = 'var(--red)';
+      }
+    }
+    const resDisplay = res ? `<span style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--text2)">${res.home}-${res.away}</span>` : '<span class="locked-badge">Verrouillé</span>';
     return `<div class="match-row" data-match-id="${m.id}" style="padding-top:2px">
       ${gl}
       <div class="team-name left">${flag(m.home)}${m.home}</div>
-      <div style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--text3)">${pred.home!==''?pred.home:'–'}</div>
+      <div style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:${predColor}">${pred.home!==''?pred.home:'–'}</div>
       <div class="vs">–</div>
-      <div style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--text3)">${pred.away!==''?pred.away:'–'}</div>
+      <div style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:${predColor}">${pred.away!==''?pred.away:'–'}</div>
       <div class="team-name right">${m.away}</div>
-      <div class="match-date"><span class="locked-badge">Verrouillé</span></div>
+      <div class="match-date" style="display:flex;flex-direction:column;align-items:center;gap:2px">${resDisplay}${badge}</div>
     </div>`;
   }
   return `<div class="match-row" data-match-id="${m.id}" style="padding-top:2px">
