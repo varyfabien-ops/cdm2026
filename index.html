@@ -2039,14 +2039,14 @@ async function loadStats_page() {
     if (lastPerfect) return;
     const res = allResults[m.id];
     const pronos = pronosByMatch[m.id] || [];
-    const perfect = pronos.find(p => Number(p.home)===Number(res.home) && Number(p.away)===Number(res.away));
-    if (perfect) { lastPerfect = m; lastPerfectPseudo = perfect.pseudo; }
+    const perfects = pronos.filter(p => Number(p.home)===Number(res.home) && Number(p.away)===Number(res.away));
+    if (perfects.length) { lastPerfect = m; lastPerfectPseudo = perfects.map(p => p.pseudo).join(', '); }
   });
   if (lastPerfect) {
     const res = allResults[lastPerfect.id];
     facts.push({
       icon: '💎', title: 'Dernier score exact',
-      value: `${lastPerfectPseudo} — ${res.home}-${res.away}`,
+      value: `${res.home}-${res.away} — ${lastPerfectPseudo}`,
       sub: `${flag(lastPerfect.home)}${lastPerfect.home} vs ${lastPerfect.away}${flagInline(lastPerfect.away)}`
     });
   }
