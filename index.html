@@ -441,7 +441,9 @@ const ADMIN_PSEUDO = 'Admin CSE';
         </select>
       </div>
       <div id="compare-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
-      <canvas id="evolution-chart" style="width:100%;max-height:300px"></canvas>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <canvas id="evolution-chart" style="min-width:1200px;max-height:300px"></canvas>
+      </div>
       <div id="evolution-legend" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"></div>
     </div>
 
