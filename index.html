@@ -1477,6 +1477,10 @@ async function loadRanking() {
   if (snapshots && snapshots.length > 0) {
     const lastMatch = Math.max(...snapshots.map(s => s.match_number||0));
     const lastSnaps = snapshots.filter(s => s.match_number === lastMatch);
+    const prevMatch = Math.max(...snapshots.filter(s => s.match_number < lastMatch).map(s => s.match_number||0))
+    const prevSnaps = snapshots.filter(s => s.match_number === prevMatch);
+    const prevPos = {};
+    prevSnaps.forEach(s => { prevPos[s.pseudo] = s.position; });
     // Dédoublonner par pseudo (garder le meilleur score en cas de doublon)
     const dedupMap = {};
     lastSnaps.forEach(s => {
