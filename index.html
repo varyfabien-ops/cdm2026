@@ -1094,6 +1094,8 @@ async function loadStats() {
   document.getElementById('stat-participants').textContent = (ps||[]).length;
   const { count } = await sb.from('pronos').select('*',{count:'exact',head:true}).neq('match_id','special');
   document.getElementById('stat-pronostics').textContent = count||0;
+  const totalButs = Object.values(allResults).reduce((acc, r) => acc + (Number(r.home)||0) + (Number(r.away)||0), 0);
+  document.getElementById('stat-buts').textContent = totalButs;
 }
 async function upsertProno(matchId, home, away) {
   if (!sbReady||!currentPseudo) return;
