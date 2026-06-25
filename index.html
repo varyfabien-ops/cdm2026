@@ -1326,14 +1326,14 @@ function switchPronoTab(tab, btn) {
 function updatePronoBadge() {}
 
 function getMatchNumber(m) {
-  if (!m.phase.startsWith('Groupe')) {
-    // Pour les phases KO, le numéro = position dans l'ordre de création (ID)
-    const koMatches = [...ALL_MATCHES]
-      .filter(x => !x.phase.startsWith('Groupe'))
-      .sort((a,b) => a.id - b.id);
-    const groupCount = ALL_MATCHES.filter(x => x.phase.startsWith('Groupe')).length;
-    return groupCount + koMatches.findIndex(x => x.id === m.id) + 1;
-  }
+  const FIFA_NUMBERS = {
+    73:73, 74:76, 75:74, 76:75,
+    77:78, 78:77, 79:79, 80:80,
+    81:82, 82:81, 83:83, 84:84,
+    85:85, 86:88, 87:86, 88:87
+  };
+  if (FIFA_NUMBERS[m.id] !== undefined) return FIFA_NUMBERS[m.id];
+  if (!m.phase.startsWith('Groupe')) return m.id;
   const sorted = [...ALL_MATCHES].sort((a,b) => a.deadline - b.deadline);
   return sorted.findIndex(x => x.id === m.id) + 1;
 }
