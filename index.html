@@ -1326,6 +1326,14 @@ function switchPronoTab(tab, btn) {
 function updatePronoBadge() {}
 
 function getMatchNumber(m) {
+  if (!m.phase.startsWith('Groupe')) {
+    // Pour les phases KO, le numéro = position dans l'ordre de création (ID)
+    const koMatches = [...ALL_MATCHES]
+      .filter(x => !x.phase.startsWith('Groupe'))
+      .sort((a,b) => a.id - b.id);
+    const groupCount = ALL_MATCHES.filter(x => x.phase.startsWith('Groupe')).length;
+    return groupCount + koMatches.findIndex(x => x.id === m.id) + 1;
+  }
   const sorted = [...ALL_MATCHES].sort((a,b) => a.deadline - b.deadline);
   return sorted.findIndex(x => x.id === m.id) + 1;
 }
