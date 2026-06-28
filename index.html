@@ -2083,7 +2083,7 @@ phases.forEach(({ label, filter }) => {
   // ── 4. Joueur le plus audacieux (plus gros score pronostiqué) ──
   let maxGoals = 0, audaciousPseudo = '', audaciousScore = '';
   Object.entries(pronosByPseudo).forEach(([pseudo, pronos]) => {
-    pronos.forEach(p => {
+    pronos.filter(p => { const m = ALL_MATCHES.find(x => String(x.id)===String(p.match_id)); return m && !m.phase.startsWith('Groupe'); }).forEach(p => {
       const total = Number(p.home) + Number(p.away);
       if (total > maxGoals) { maxGoals = total; audaciousPseudo = pseudo; audaciousScore = `${p.home}-${p.away}`; }
     });
@@ -2097,8 +2097,9 @@ phases.forEach(({ label, filter }) => {
   // ── 5. Joueur le plus prudent (moyenne buts la plus basse) ──
   let minAvg = 99, prudentPseudo = '';
   Object.entries(pronosByPseudo).forEach(([pseudo, pronos]) => {
-    if (pronos.length < 3) return;
-    const avg = pronos.reduce((s,p) => s + Number(p.home) + Number(p.away), 0) / pronos.length;
+    const koPronos = pronos.filter(p => { const m = ALL_MATCHES.find(x => String(x.id)===String(p.match_id)); return m && !m.phase.startsWith('Groupe'); });
+    if (koPronos.length < 3) return;
+    const avg = koPronos.reduce((s,p) => s + Number(p.home) + Number(p.away), 0) / koPronos.length;
     if (avg < minAvg) { minAvg = avg; prudentPseudo = pseudo; }
   });
   if (prudentPseudo) facts.push({
