@@ -2086,8 +2086,34 @@ async function loadStats_page() {
       value: `${res.home}-${res.away} — ${lastPerfectPseudo}`,
       sub: `${flag(lastPerfect.home)}${lastPerfect.home} vs ${lastPerfect.away}${flagInline(lastPerfect.away)}`
     });
-  }
-
+}
+  // ── Top 5 par phase ──
+const phases = [
+  { label: 'Phase de groupes', filter: m => m.phase.startsWith('Groupe') },
+  { label: 'Seizièmes de finale', filter: m => m.phase.startsWith('Seizième') },
+  { label: 'Huitièmes de finale', filter: m => m.phase.startsWith('Huitième') },
+  { label: 'Quarts de finale', filter: m => m.phase.startsWith('Quart') },
+  { label: 'Demi-finales', filter: m => m.phase.startsWith('Demi') },
+];
+phases.forEach(({ label, filter }) => {
+  const phaseMatches = ALL_MATCHES.filter(m => filter(m) && allResults[m.id]);
+  if (!phaseMatches.length) return;
+  const scores = {};
+  players.forEach(p => { scores[p.pseudo] = 0; });
+  phaseMatches.forEach(m => {
+    const res = allResults[m.id];
+    const mult = PHASE_MULT[m.phase] || 1;
+    (pronosByMatch[m.id] || []).forEach(p => {
+      if (Number(p.home)===Number(res.home) && Number(p.away)===Number(res.away)) scores[p.pseudo] = (scores[p.pseudo]||0) + 3*mult;
+      else if (Math.sign(p.home-p.away)===Math.sign(res.home-res.away)) scores[p.pseudo] = (scores[p.pseudo]||0) + 1*mult;
+    });
+  });
+  const top5 = Object.entries(scores).sort((a,b) => b[1]-a[1]).slice(0,5);
+  if (!top5[0][1]) return;
+  const value = top5.map(([pseudo, pts], i) => `${i+1}. ${pseudo} — ${pts} pts`).join('<br>');
+  facts.push({ icon: '🏅', title: `Top 5 — ${label}`, value, sub: `${phaseMatches.length} matchs joués` });
+});  
+  
   // ── Rendu HTML ──
   if (!facts.length) {
     container.innerHTML = '<div class="empty-state"><p>Les fun facts apparaîtront quand des résultats seront saisis !</p></div>';
