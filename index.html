@@ -2089,13 +2089,30 @@ phases.forEach(({ label, filter }) => {
     sub: `${topWinner[1]} participant${topWinner[1]>1?'s':''} l'ont donnée gagnante`
   });
 
-  // ── 7. Joueur le plus assidu ──
-  const maxPronos = Object.entries(pronosByPseudo).sort((a,b) => b[1].length-a[1].length)[0];
-  if (maxPronos) facts.push({
-    icon: '🏃', title: 'Joueur le plus assidu',
-    value: maxPronos[0],
-    sub: `${maxPronos[1].length} pronostics saisis sur ${ALL_MATCHES.length}`
+  // ── 7. Série en cours ──
+let bestStreak = 0;
+const bestStreakPseudos = [];
+Object.entries(pronosByPseudo).forEach(([pseudo, pronos]) => {
+  const matchesSorted = [...matchesWithResult].sort((a,b) => a.deadline - b.deadline);
+  let streak = 0, maxStreak = 0;
+  matchesSorted.forEach(m => {
+    const p = pronos.find(x => String(x.match_id) === String(m.id));
+    const res = allResults[m.id];
+    if (p && res) {
+      const good = Math.sign(p.home-p.away)===Math.sign(res.home-res.away) ||
+        (Number(p.home)===Number(res.home) && Number(p.away)===Number(res.away));
+      if (good) { streak++; maxStreak = Math.max(maxStreak, streak); }
+      else streak = 0;
+    }
   });
+  if (maxStreak > bestStreak) { bestStreak = maxStreak; bestStreakPseudos.length = 0; bestStreakPseudos.push(pseudo); }
+  else if (maxStreak === bestStreak && maxStreak > 0) bestStreakPseudos.push(pseudo);
+});
+if (bestStreak > 1) facts.push({
+  icon: '🔥', title: 'Meilleure série',
+  value: bestStreakPseudos.join(', '),
+  sub: `${bestStreak} bons résultats consécutifs`
+});
 
   // ── 8. Score parfait le plus récent ──
   let lastPerfect = null, lastPerfectPseudo = '';
