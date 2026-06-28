@@ -1461,6 +1461,32 @@ function schedulePronoSave(matchId, side, val) {
     }
   },800);
 }
+async function loadAllSpecialPronos() {
+  const { data } = await sb.from('pronos').select('pseudo,special').eq('match_id','special');
+  if (!data || !data.length) {
+    document.getElementById('all-special-table').innerHTML = '<p style="color:var(--text3)">Aucun pronostic saisi.</p>';
+    return;
+  }
+  data.sort((a,b) => a.pseudo.localeCompare(b.pseudo));
+  let html = `<table style="width:100%;border-collapse:collapse;font-size:14px">
+    <thead><tr style="color:var(--text3);font-size:12px;text-transform:uppercase;border-bottom:1px solid var(--border)">
+      <th style="text-align:left;padding:8px 4px">Nom</th>
+      <th style="text-align:center;padding:8px 4px">Vainqueur</th>
+      <th style="text-align:center;padding:8px 4px">Top 4</th>
+      <th style="text-align:center;padding:8px 4px">Buts</th>
+    </tr></thead><tbody>`;
+  data.forEach(r => {
+    const sp = r.special || {};
+    html += `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:8px 4px;color:var(--text)">${r.pseudo}</td>
+      <td style="padding:8px 4px;text-align:center;color:var(--gold)">${sp.winner||'–'}</td>
+      <td style="padding:8px 4px;text-align:center;color:var(--text2)">${(sp.top4||[]).filter(Boolean).join(', ')||'–'}</td>
+      <td style="padding:8px 4px;text-align:center;color:var(--text2)">${sp.totalgoals||'–'}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('all-special-table').innerHTML = html;
+}  
 function renderSpecials(c) {
   const globalLock = new Date()>=new Date('2026-06-11T21:00:00'), sp=mySpecial;
   const teamsSorted = [...TEAMS].sort((a,b)=>a.localeCompare(b,'fr'));
