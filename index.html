@@ -1471,7 +1471,12 @@ function renderSpecials(c) {
       <p style="font-size:16px;color:var(--text2);margin-top:8px">Vainqueur : <strong style="color:var(--text)">${sp.winner||'Non renseigné'}</strong></p>
       <p style="font-size:16px;color:var(--text2);margin-top:6px">Top 4 : <strong style="color:var(--text)">${(sp.top4||[]).join(', ')||'Non renseigné'}</strong></p>
       <p style="font-size:16px;color:var(--text2);margin-top:6px">Nombre de buts : <strong style="color:var(--text)">${sp.totalgoals||'Non renseigné'}</strong></p>
+    </div>
+    <div class="form-card" style="margin-top:12px">
+      <div style="font-size:13px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">👥 Pronostics de tous les participants</div>
+      <div id="all-special-table">Chargement...</div>
     </div>`;
+    loadAllSpecialPronos();
     return;
   }
   c.innerHTML=`<div class="form-card" style="text-align:center;margin-bottom:1rem">
