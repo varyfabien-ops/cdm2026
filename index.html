@@ -1915,7 +1915,7 @@ async function loadStats_page() {
   container.innerHTML = '<div class="empty-state"><p>Calcul en cours...</p></div>';
 
   await loadResults();
-  const { data: allPronos } = await sb.from('pronos').select('pseudo,match_id,home,away');
+  const { data: allPronos } = await sb.from('pronos').select('pseudo,match_id,home,away').limit(20000);
   const { data: players } = await sb.from('players').select('pseudo');
 
   if (!players || !players.length) {
