@@ -2038,7 +2038,7 @@ phases.forEach(({ label, filter }) => {
 
   // ── 2. Match le plus difficile (moins de bons résultats) ──
   let hardestMatch = null, hardestRate = 1;
-  matchesWithResult.forEach(m => {
+  matchesWithResult.filter(m => !m.phase.startsWith('Groupe')).forEach(m => {
     const pronos = pronosByMatch[m.id] || [];
     if (pronos.length < 3) return;
     const res = allResults[m.id];
@@ -2060,7 +2060,7 @@ phases.forEach(({ label, filter }) => {
 
   // ── 3. Match le plus facile ──
   let easiestMatch = null, easiestRate = 0;
-  matchesWithResult.forEach(m => {
+  matchesWithResult.filter(m => !m.phase.startsWith('Groupe')).forEach(m => {
     const pronos = pronosByMatch[m.id] || [];
     if (pronos.length < 3) return;
     const res = allResults[m.id];
