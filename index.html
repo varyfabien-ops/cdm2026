@@ -1589,7 +1589,7 @@ async function saveAdminResults() {
   if (upserts.length) {
     const { error } = await sb.from('results').upsert(upserts,{onConflict:'match_id'});
     if (error) showToast('Erreur : '+error.message,'error');
-    else { showToast(`${upserts.length} résultats enregistrés !`); await loadResults(); takeRankingSnapshot(); }
+    else { showToast(`${upserts.length} résultats enregistrés !`); await loadResults(); takeRankingSnapshot(); renderLastResult(); }
   } else showToast('Aucun score à enregistrer','info');
   btn.innerHTML='Enregistrer les résultats'; btn.disabled=false;
 }
