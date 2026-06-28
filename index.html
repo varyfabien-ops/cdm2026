@@ -1323,6 +1323,32 @@ function switchPronoTab(tab, btn) {
   btn.classList.add('active');
   renderPronoContent(tab);
 }
+async function showAllPronos(matchId, matchName) {
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = '<div style="background:var(--bg2);border-radius:16px;padding:20px;max-width:500px;width:100%;max-height:80vh;overflow-y:auto;border:1px solid var(--border)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="color:var(--gold);font-family:Bebas Neue,sans-serif;font-size:1.4rem;margin:0">👥 ' + matchName + '</h3><button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:none;border:none;color:var(--text2);font-size:1.5rem;cursor:pointer">✕</button></div><div id="all-pronos-list">Chargement...</div></div>';
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  const { data } = await sb.from('pronos').select('pseudo,home,away').eq('match_id', matchId);
+  const res = allResults[matchId];
+  if (!data || !data.length) {
+    document.getElementById('all-pronos-list').innerHTML = '<p style="color:var(--text3)">Aucun pronostic saisi.</p>';
+    return;
+  }
+  data.sort((a,b) => a.pseudo.localeCompare(b.pseudo));
+  let html = '';
+  data.forEach(p => {
+    let color = 'var(--text2)';
+    if (res && p.home !== '' && p.away !== '') {
+      if (Number(p.home)===Number(res.home) && Number(p.away)===Number(res.away)) color = 'var(--green)';
+      else if (Math.sign(p.home-p.away)===Math.sign(res.home-res.away)) color = 'var(--gold)';
+      else color = 'var(--red)';
+    }
+    html += `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text)">${p.pseudo}</span><span style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:${color}">${p.home!==''&&p.away!==''?p.home+'-'+p.away:'–'}</span></div>`;
+  });
+  document.getElementById('all-pronos-list').innerHTML = html;
+}
+  
 function updatePronoBadge() {}
 
 function getMatchNumber(m) {
