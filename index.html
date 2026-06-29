@@ -2013,7 +2013,15 @@ phases.forEach(({ label, filter }) => {
       else if (Math.sign(p.home-p.away)===Math.sign(res.home-res.away)) scores[p.pseudo] = (scores[p.pseudo]||0) + 1*mult;
     });
   });
-  const top5 = Object.entries(scores).sort((a,b) => b[1]-a[1]).slice(0,5);
+  const exactScores = {};
+players.forEach(p => { exactScores[p.pseudo] = 0; });
+phaseMatches.forEach(m => {
+  const res = allResults[m.id];
+  (pronosByMatch[m.id] || []).forEach(p => {
+    if (Number(p.home)===Number(res.home) && Number(p.away)===Number(res.away)) exactScores[p.pseudo] = (exactScores[p.pseudo]||0) + 1;
+  });
+});
+const top5 = Object.entries(scores).sort((a,b) => b[1]-a[1] || (exactScores[b[0]]||0)-(exactScores[a[0]]||0)).slice(0,5);
   if (!top5[0][1]) return;
   const value = top5.map(([pseudo, pts], i) => `${i+1}. ${pseudo} — ${pts} pts`).join('<br>');
   facts.push({ icon: '🏅', title: `Top 5 — ${label}`, value, sub: `${phaseMatches.length} matchs joués` });
