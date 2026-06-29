@@ -1998,10 +1998,7 @@ async function loadStats_page() {
 // ── Top 5 par phase ──
 const phases = [
   { label: 'Phase de groupes', filter: m => m.phase.startsWith('Groupe') },
-  { label: 'Seizièmes de finale', filter: m => m.phase.startsWith('Seizième') },
-  { label: 'Huitièmes de finale', filter: m => m.phase.startsWith('Huitième') },
-  { label: 'Quarts de finale', filter: m => m.phase.startsWith('Quart') },
-  { label: 'Demi-finales', filter: m => m.phase.startsWith('Demi') },
+  { label: 'Phases finales', filter: m => !m.phase.startsWith('Groupe') },
 ];
 phases.forEach(({ label, filter }) => {
   const phaseMatches = ALL_MATCHES.filter(m => filter(m) && allResults[m.id]);
@@ -2020,7 +2017,7 @@ phases.forEach(({ label, filter }) => {
   if (!top5[0][1]) return;
   const value = top5.map(([pseudo, pts], i) => `${i+1}. ${pseudo} — ${pts} pts`).join('<br>');
   facts.push({ icon: '🏅', title: `Top 5 — ${label}`, value, sub: `${phaseMatches.length} matchs joués` });
-});  
+});
   
   // ── 1. Score le plus pronostiqué ──
   const scoreCount = {};
