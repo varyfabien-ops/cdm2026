@@ -1400,7 +1400,7 @@ function matchRow(m) {
       <div class="vs">–</div>
       <div style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:${predColor}">${pred.away!==''?pred.away:'–'}</div>
       <div class="team-name right">${m.away}</div>
-      <div class="match-date" style="display:flex;flex-direction:column;align-items:center;gap:2px">${resDisplay}${badge}<button onclick="showAllPronos(${m.id},'${m.home} vs ${m.away}')" style="margin-top:4px;font-size:11px;padding:3px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer">👥 Voir tous</button></div>
+      <div class="match-date" style="display:flex;flex-direction:column;align-items:center;gap:2px">${resDisplay}${badge}<button onclick="showAllPronos(${m.id},'${(m.home+' vs '+m.away).replace(/'/g,"\\'")}')" style="margin-top:4px;font-size:11px;padding:3px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer">👥 Voir tous</button></div>
     </div>`;
   }
   return `<div class="match-row" data-match-id="${m.id}" style="padding-top:2px">
