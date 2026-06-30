@@ -2175,10 +2175,9 @@ if (bestStreak >= 1) facts.push({
     container.innerHTML = '<div class="empty-state"><p>Les fun facts apparaîtront quand des résultats seront saisis !</p></div>';
     return;
   }
-
   container.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
     ${facts.map(f => `
-      <div class="form-card" style="margin-bottom:0">
+      <div class="form-card" style="margin-bottom:0${f.title==='Série en cours'||f.title==='Dernier score exact'?';grid-column:1/-1':''}">
         <div style="font-size:1.8rem;margin-bottom:8px">${f.icon}</div>
         <div style="font-size:13px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">${f.title}</div>
         <div style="font-size:18px;font-weight:600;color:var(--gold);margin-bottom:4px">${f.value}</div>
