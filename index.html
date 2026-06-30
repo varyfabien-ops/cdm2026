@@ -2129,24 +2129,25 @@ const top5 = Object.entries(scores).sort((a,b) => b[1]-a[1] || (exactScores[b[0]
   // ── 7. Série en cours ──
 let bestStreak = 0;
 const bestStreakPseudos = [];
+const matchesSorted = [...matchesWithResult].sort((a,b) => a.deadline - b.deadline);
 Object.entries(pronosByPseudo).forEach(([pseudo, pronos]) => {
-  const matchesSorted = [...matchesWithResult].sort((a,b) => a.deadline - b.deadline);
-  let streak = 0, maxStreak = 0;
-  matchesSorted.forEach(m => {
+  let streak = 0;
+  // Parcourir depuis le match le plus récent vers le plus ancien
+  for (let i = matchesSorted.length - 1; i >= 0; i--) {
+    const m = matchesSorted[i];
     const p = pronos.find(x => String(x.match_id) === String(m.id));
     const res = allResults[m.id];
-    if (p && res) {
-      const good = Math.sign(p.home-p.away)===Math.sign(res.home-res.away) ||
-        (Number(p.home)===Number(res.home) && Number(p.away)===Number(res.away));
-      if (good) { streak++; maxStreak = Math.max(maxStreak, streak); }
-      else streak = 0;
-    }
-  });
-  if (maxStreak > bestStreak) { bestStreak = maxStreak; bestStreakPseudos.length = 0; bestStreakPseudos.push(pseudo); }
-  else if (maxStreak === bestStreak && maxStreak > 0) bestStreakPseudos.push(pseudo);
+    if (!p || !res) break; // pronostic manquant = casse la série en cours
+    const good = Math.sign(p.home-p.away)===Math.sign(res.home-res.away) ||
+      (Number(p.home)===Number(res.home) && Number(p.away)===Number(res.away));
+    if (good) streak++;
+    else break;
+  }
+  if (streak > bestStreak) { bestStreak = streak; bestStreakPseudos.length = 0; bestStreakPseudos.push(pseudo); }
+  else if (streak === bestStreak && streak > 0) bestStreakPseudos.push(pseudo);
 });
 if (bestStreak > 1) facts.push({
-  icon: '🔥', title: 'Meilleure série',
+  icon: '🔥', title: 'Série en cours',
   value: bestStreakPseudos.join(', '),
   sub: `${bestStreak} bons résultats consécutifs`
 });
