@@ -2146,7 +2146,7 @@ Object.entries(pronosByPseudo).forEach(([pseudo, pronos]) => {
   if (streak > bestStreak) { bestStreak = streak; bestStreakPseudos.length = 0; bestStreakPseudos.push(pseudo); }
   else if (streak === bestStreak && streak > 0) bestStreakPseudos.push(pseudo);
 });
-if (bestStreak > 1) facts.push({
+if (bestStreak >= 1) facts.push({
   icon: '🔥', title: 'Série en cours',
   value: bestStreakPseudos.join(', '),
   sub: `${bestStreak} bons résultats consécutifs`
