@@ -2026,6 +2026,43 @@ const top5 = Object.entries(scores).sort((a,b) => b[1]-a[1] || (exactScores[b[0]
   const value = top5.map(([pseudo, pts], i) => `${i+1}. ${pseudo} — ${pts} pts`).join('<br>');
   facts.push({ icon: '🏅', title: `Top 5 — ${label}`, value, sub: `${phaseMatches.length} matchs joués` });
 });
+
+  // ── Le miracle / La désillusion ──
+const { data: allSnaps } = await sb.from('ranking_snapshots').select('pseudo,position,match_number').order('match_number', { ascending: true });
+if (allSnaps && allSnaps.length) {
+  // Trouver le dernier snapshot de la phase de groupes (avant les KO, match 72)
+  const groupSnaps = allSnaps.filter(s => s.match_number <= 72);
+  const lastGroupMatch = groupSnaps.length ? Math.max(...groupSnaps.map(s => s.match_number)) : 0;
+  const startPositions = {};
+  allSnaps.filter(s => s.match_number === lastGroupMatch).forEach(s => { startPositions[s.pseudo] = s.position; });
+
+  const lastMatch = Math.max(...allSnaps.map(s => s.match_number));
+  const currentPositions = {};
+  allSnaps.filter(s => s.match_number === lastMatch).forEach(s => { currentPositions[s.pseudo] = s.position; });
+
+  if (lastGroupMatch > 0 && lastMatch > lastGroupMatch) {
+    let bestGain = 0, miraclePseudo = '';
+    let worstLoss = 0, desillusionPseudo = '';
+    Object.keys(currentPositions).forEach(pseudo => {
+      const start = startPositions[pseudo];
+      const current = currentPositions[pseudo];
+      if (start === undefined) return;
+      const diff = start - current; // positif = a remonté
+      if (diff > bestGain) { bestGain = diff; miraclePseudo = pseudo; }
+      if (-diff > worstLoss) { worstLoss = -diff; desillusionPseudo = pseudo; }
+    });
+    if (miraclePseudo && bestGain > 0) facts.push({
+      icon: '🚀', title: 'Le miracle',
+      value: miraclePseudo,
+      sub: `A remonté de ${bestGain} place${bestGain>1?'s':''} depuis la fin des groupes (#${startPositions[miraclePseudo]} → #${currentPositions[miraclePseudo]})`
+    });
+    if (desillusionPseudo && worstLoss > 0) facts.push({
+      icon: '📉', title: 'La désillusion',
+      value: desillusionPseudo,
+      sub: `A perdu ${worstLoss} place${worstLoss>1?'s':''} depuis la fin des groupes (#${startPositions[desillusionPseudo]} → #${currentPositions[desillusionPseudo]})`
+    });
+  }
+}
   
   // ── 1. Score le plus pronostiqué ──
   const scoreCount = {};
