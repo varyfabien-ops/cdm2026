@@ -2134,14 +2134,15 @@ Object.entries(pronosByPseudo).forEach(([pseudo, pronos]) => {
   let streak = 0;
   for (let i = matchesSorted.length - 1; i >= 0; i--) {
     const m = matchesSorted[i];
-    const p = pronos.find(x => String(x.match_id) === String(m.id));
     const res = allResults[m.id];
-    if (!p || !res) continue;
+    if (!res) continue; // pas encore joué, on ignore
+    const p = pronos.find(x => String(x.match_id) === String(m.id));
+    if (!p) break; // résultat existe mais pas de pronostic = série cassée
     const good = Math.sign(p.home-p.away)===Math.sign(res.home-res.away) ||
       (Number(p.home)===Number(res.home) && Number(p.away)===Number(res.away));
     if (good) streak++;
     else break;
-  }
+}
   if (streak > bestStreak) { bestStreak = streak; bestStreakPseudos.length = 0; bestStreakPseudos.push(pseudo); }
   else if (streak === bestStreak && streak > 0) bestStreakPseudos.push(pseudo);
 });
