@@ -2643,12 +2643,14 @@ function buildDiplomaHTML(fullName, position, total, points, exact, longestStrea
     <div style="text-align:center;position:relative;width:100%">
       ${logoSrc ? `<img src="${logoSrc}" style="width:70px;height:auto;margin:0 auto 4px;display:block">` : ''}
       <div style="display:inline-block;padding:7px 20px;background:#FBBF24;color:#374151;border-radius:10px;font-family:'Aptos','Outfit',system-ui,sans-serif;font-weight:700;font-size:13px;letter-spacing:1px">CSE ASTREA MONTS — CONCOURS DE PRONOSTICS</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:40px;letter-spacing:5px;margin-top:6px;color:#1f2937">DIPLÔME DE PARTICIPATION</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:40px;letter-spacing:1px;margin-top:6px;color:#1f2937">DIPLÔME DE PARTICIPATION</div>
       <div style="font-size:14px;margin-top:2px;color:#5b6472">COUPE DU MONDE 2026 — USA · CANADA · MEXIQUE</div>
     </div>
     <div style="text-align:center;margin-top:16px;position:relative;width:100%">
       <div style="font-size:14px;color:#5b6472;letter-spacing:1px">Décerné à</div>
-      <div style="display:inline-block;padding:7px 20px;background:#374151;color:#FBBF24;border-radius:10px;font-family:'Aptos','Outfit',system-ui,sans-serif;font-weight:700;font-size:32px;letter-spacing:1px">${fullName}</div>
+    </div>
+      <div style="display:inline-block;padding:7px 20px;background:#374151;color:#FBBF24;border-radius:10px;font-family:'Aptos','Outfit',system-ui,sans-serif;font-weight:700;font-size:40px;letter-spacing:1px">${fullName}</div>
+    </div>
       <div style="font-size:18px">${medal} CLASSEMENT FINAL : <strong>#${position}</strong> sur ${total} participants</div>
       <div style="font-size:15px;margin-top:6px;color:#1f2937"><strong>${points}</strong> Points · <strong>${exact}</strong> Scores Exacts · <strong>${longestStreak}</strong> Bons Résultats Consécutifs</div>
       <div style="font-size:14px;margin-top:6px;color:#5b6472">${groupLine}</div>
