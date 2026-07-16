@@ -2600,11 +2600,20 @@ function buildEvolutionSVG(evolution, w, h) {
     const y = pad + ((e.position - minPos) / range) * (h - 2 * pad);
     return { x, y };
   });
-  const points = xy.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-  const dots = xy.map(p => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.8" fill="#374151"/>`).join('');
+  let d = `M${xy[0].x.toFixed(1)},${xy[0].y.toFixed(1)}`;
+  for (let i = 0; i < xy.length - 1; i++) {
+    const p0 = xy[i - 1] || xy[i];
+    const p1 = xy[i];
+    const p2 = xy[i + 1];
+    const p3 = xy[i + 2] || p2;
+    const cp1x = p1.x + (p2.x - p0.x) / 6;
+    const cp1y = p1.y + (p2.y - p0.y) / 6;
+    const cp2x = p2.x - (p3.x - p1.x) / 6;
+    const cp2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+  }
   return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
-    <polyline points="${points}" fill="none" stroke="#374151" stroke-width="2.5"/>
-    ${dots}
+    <path d="${d}" fill="none" stroke="#374151" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>`;
 }
 function buildMatchGridSVG(matches) {
@@ -2628,7 +2637,7 @@ function buildDiplomaHTML(fullName, position, total, points, exact, longestStrea
   const groupLine = groupRank ? `Phase de groupes : <strong style="color:#1f2937">#${groupRank.pos}</strong> / ${groupRank.total} <span style="color:#374151;font-weight:700">(${groupRank.points} pts)</span>` : '';
   const finaleLine = finaleRank ? `Phase finale : <strong style="color:#1f2937">#${finaleRank.pos}</strong> / ${finaleRank.total} <span style="color:#374151;font-weight:700">(${finaleRank.points} pts)</span>` : '';
   return `
-  <div style="width:1123px;height:794px;background:#FFFFFF;position:relative;font-family:'Aptos','Outfit',system-ui,sans-serif;border:6px solid #374151;box-sizing:border-box;padding:24px 60px;color:#1f2937;overflow:hidden;display:flex;flex-direction:column;justify-content:center">
+  <div style="width:1123px;height:794px;background:#FFFFFF;position:relative;font-family:'Aptos','Outfit',system-ui,sans-serif;border:6px solid #374151;box-sizing:border-box;padding:44px 60px 24px;color:#1f2937;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-start">
     ${mascotLeftSrc ? `<img src="${mascotLeftSrc}" style="position:absolute;left:-6px;bottom:-6px;width:230px;height:auto;opacity:0.95;pointer-events:none">` : ''}
     ${mascotRightSrc ? `<img src="${mascotRightSrc}" style="position:absolute;right:-6px;bottom:-6px;width:230px;height:auto;opacity:0.95;pointer-events:none">` : ''}
     <div style="text-align:center;position:relative;width:100%">
