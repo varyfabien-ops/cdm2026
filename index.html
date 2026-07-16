@@ -2647,8 +2647,8 @@ function buildDiplomaHTML(fullName, position, total, points, exact, longestStrea
       <div style="font-size:14px;margin-top:2px;color:#5b6472">COUPE DU MONDE 2026 — USA · CANADA · MEXIQUE</div>
     </div>
     <div style="text-align:center;margin-top:16px;position:relative;width:100%">
-      <div style="font-size:14px;color:#5b6472;letter-spacing:1px;margin-top:6px">Décerné à</div>
-      <div style="display:inline-block;padding:7px 20px;background:#374151;color:#FBBF24;border-radius:10px;font-family:'Bebas Neue','Outfit',system-ui,sans-serif;font-weight:700;font-size:40px;letter-spacing:1px;margin-top:6px">${fullName}</div>
+      <div style="font-size:14px;color:#5b6472;letter-spacing:1px;margin-bottom:6px">Décerné à</div>
+      <div style="display:inline-block;padding:7px 20px;background:#374151;color:#FBBF24;border-radius:10px;font-family:'Bebas Neue','Outfit',system-ui,sans-serif;font-weight:700;font-size:40px;letter-spacing:1px;margin-bottom:6px">${fullName}</div>
       <div style="font-size:18px">${medal} CLASSEMENT FINAL : <strong>#${position}</strong> sur ${total} participants</div>
       <div style="font-size:15px;margin-top:6px;color:#1f2937"><strong>${points}</strong> Points · <strong>${exact}</strong> Scores Exacts · <strong>${longestStreak}</strong> Bons Résultats Consécutifs</div>
       <div style="font-size:14px;margin-top:6px;color:#5b6472">${groupLine}</div>
@@ -2657,17 +2657,17 @@ function buildDiplomaHTML(fullName, position, total, points, exact, longestStrea
     </div>
     <div style="display:flex;justify-content:center;align-items:flex-start;gap:44px;margin-top:20px;position:relative;width:100%">
       <div style="text-align:center">
-        <div style="font-size:11px;letter-spacing:1px;color:#5b6472;margin-bottom:4px">ÉVOLUTION DU CLASSEMENT</div>
+        <div style="font-size:11px;letter-spacing:1px;color:#5b6472;margin-bottom:4px">LES MONTAGNES RUSSES ÉMOTIONNELLES</div>
         ${buildEvolutionSVG(evolution, 420, 130)}
       </div>
       <div style="text-align:center">
         <div style="font-size:11px;letter-spacing:1px;color:#5b6472;margin-bottom:4px">TOUS LES PRONOSTICS</div>
         ${buildMatchGridSVG(matches || [])}
         <div style="display:flex;gap:12px;justify-content:center;margin-top:7px;font-size:8px;color:#5b6472">
-          <span><span style="display:inline-block;width:8px;height:8px;background:#16a34a;border-radius:2px;margin-right:3px;vertical-align:-1px"></span>SCORE EXACT</span>
-          <span><span style="display:inline-block;width:8px;height:8px;background:#FBBF24;border-radius:2px;margin-right:3px;vertical-align:-1px"></span>BON RÉSULTAT</span>
-          <span><span style="display:inline-block;width:8px;height:8px;background:#ef4444;border-radius:2px;margin-right:3px;vertical-align:-1px"></span>BIEN TENTÉ ... MAIS LOUPÉ</span>
-          <span><span style="display:inline-block;width:8px;height:8px;background:#e2e5ea;border-radius:2px;margin-right:3px;vertical-align:-1px"></span>NON PRONOSTIQUÉ</span>
+          <span><span style="display:inline-block;width:8px;height:8px;background:#16a34a;border-radius:2px;margin-right:3px;vertical-align:-1px"></span>PLEINE LUCARNE</span>
+          <span><span style="display:inline-block;width:8px;height:8px;background:#FBBF24;border-radius:2px;margin-right:3px;vertical-align:-1px"></span>LE FAMEUX BUT A LA 90'+5'</span>
+          <span><span style="display:inline-block;width:8px;height:8px;background:#ef4444;border-radius:2px;margin-right:3px;vertical-align:-1px"></span>LA FAUTE DE L'ARBITRE</span>
+          <span><span style="display:inline-block;width:8px;height:8px;background:#e2e5ea;border-radius:2px;margin-right:3px;vertical-align:-1px"></span>SUR LE BANC ?</span>
         </div>
       </div>
     </div>
