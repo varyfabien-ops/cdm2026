@@ -2638,8 +2638,8 @@ function buildDiplomaHTML(fullName, position, total, points, exact, longestStrea
   const finaleLine = finaleRank ? `Phase Finale : <strong style="color:#1f2937">#${finaleRank.pos}</strong> / ${finaleRank.total} <span style="color:#374151;font-weight:700">(${finaleRank.points} Points)</span>` : '';
   return `
   <div style="width:1123px;height:794px;background:#FFFFFF;position:relative;font-family:'Aptos','Outfit',system-ui,sans-serif;border:6px solid #374151;box-sizing:border-box;padding:44px 60px 24px;color:#1f2937;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-start">
-    ${mascotLeftSrc ? `<img src="${mascotLeftSrc}" style="position:absolute;left:-6px;bottom:-6px;width:230px;height:auto;opacity:0.95;pointer-events:none">` : ''}
-    ${mascotRightSrc ? `<img src="${mascotRightSrc}" style="position:absolute;right:-6px;bottom:-6px;width:230px;height:auto;opacity:0.95;pointer-events:none">` : ''}
+    ${mascotLeftSrc ? `<img src="${mascotLeftSrc}" style="position:absolute;left:-6px;bottom:-6px;width:200px;height:auto;opacity:0.95;pointer-events:none">` : ''}
+    ${mascotRightSrc ? `<img src="${mascotRightSrc}" style="position:absolute;right:-6px;bottom:-6px;width:260px;height:auto;opacity:0.95;pointer-events:none">` : ''}
     <div style="text-align:center;position:relative;width:100%">
       ${logoSrc ? `<img src="${logoSrc}" style="width:70px;height:auto;margin:0 auto 4px;display:block">` : ''}
       <div style="display:inline-block;padding:7px 20px;background:#FBBF24;color:#374151;border-radius:8px;font-family:'Aptos','Outfit',system-ui,sans-serif;font-weight:700;font-size:13px;letter-spacing:1px">CSE ASTREA MONTS — CONCOURS DE PRONOSTICS</div>
