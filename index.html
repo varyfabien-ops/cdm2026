@@ -3036,13 +3036,14 @@ async function renderPublicResults() {
   const container = document.getElementById('public-content');
   container.innerHTML = '<div class="empty-state"><p>Chargement…</p></div>';
   try {
-    const [overallRaw, phaseRankingsRaw, specialRankingRaw, onzeType, { data: allPronosLight }, { data: specialPronosLight }] = await Promise.all([
+    const [overallRaw, phaseRankingsRaw, specialRankingRaw, onzeType, { data: allPronosLight }, { data: specialPronosLight }, efficiencyStats] = await Promise.all([
       computeFullRankingForDiploma(),
       computePhaseRankings(),
       computeSpecialRanking(),
       computeOnzeType(),
       sb.from('pronos').select('pseudo,match_id').neq('match_id', 'special').limit(20000),
-      sb.from('pronos').select('pseudo,special').eq('match_id', 'special')
+      sb.from('pronos').select('pseudo,special').eq('match_id', 'special'),
+      computeEfficiencyStats()
     ]);
     // Participation réelle : a soumis au moins un pronostic (peu importe le score obtenu, 0 point ≠ pas pronostiqué)
     const participantsAll = new Set();
@@ -3066,6 +3067,7 @@ async function renderPublicResults() {
       finale: phaseRankingsRaw.finale.filter(r => participantsFinale.has(r.pseudo))
     };
     const specialRanking = specialRankingRaw.filter(r => participantsSpecial.has(r.pseudo));
+    const efficaces = efficiencyStats.desc.filter(r => participantsAll.has(r.pseudo));
 
     // Cartes de correspondance pseudo -> points par catégorie, pour enrichir le classement général
     const groupPtsMap = {}; phaseRankingsRaw.groupes.forEach(r => { groupPtsMap[r.pseudo] = r.points; });
@@ -3100,6 +3102,7 @@ async function renderPublicResults() {
         <button onclick="switchPublicTab('groupes', this)">📋 Phase de groupes</button>
         <button onclick="switchPublicTab('finale', this)">🔥 Phase finale</button>
         <button onclick="switchPublicTab('speciaux', this)">🎯 Pronostics spéciaux</button>
+        <button onclick="switchPublicTab('chance', this)">🎯 Efficacité</button>
         <button onclick="switchPublicTab('onze', this)">⚽ Onze Type</button>
       </div>
       <div id="public-tab-general">
@@ -3130,6 +3133,17 @@ async function renderPublicResults() {
           { key: 'winnerPts', label: 'Points Vainqueur', width: '110px' }
         ])}
       </div>
+      <div id="public-tab-chance" style="display:none">
+        <h3 style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:1.2rem;margin:0 0 8px">🎯 Le plus efficace</h3>
+        <p style="color:var(--text2);font-size:12px;margin:-4px 0 10px">(Bons résultats + Scores exacts) ÷ nombre de pronostics soumis sur les matchs déjà joués</p>
+        ${buildPublicRankingTable('', efficaces, [
+          { key: 'exact', label: 'Exacts', width: '85px' },
+          { key: 'bon', label: 'Bons', width: '85px' },
+          { key: 'mauvais', label: 'Mauvais', width: '85px' },
+          { key: 'total', label: 'Total pronos', width: '100px' },
+          { key: 'pct', label: 'Efficacité', width: '100px' }
+        ])}
+      </div>
       <div id="public-tab-onze" style="display:none">
         <h2 style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;text-align:center;font-size:1.6rem;margin-bottom:4px">⚽ LE ONZE TYPE DU CONCOURS</h2>
         <p style="text-align:center;color:var(--text2);font-size:13px;margin:0 0 14px">Il fallait avoir pronostiqué au moins 75% des matchs déjà joués pour être éligible</p>
@@ -3141,7 +3155,7 @@ async function renderPublicResults() {
   }
 }
 function switchPublicTab(tab, btn) {
-  ['general', 'groupes', 'finale', 'speciaux', 'onze'].forEach(t => {
+  ['general', 'groupes', 'finale', 'speciaux', 'chance', 'onze'].forEach(t => {
     const el = document.getElementById('public-tab-' + t);
     if (el) el.style.display = (t === tab) ? '' : 'none';
   });
