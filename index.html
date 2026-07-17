@@ -2884,7 +2884,8 @@ async function computeOnzeType() {
   }).sort((a, b) => b.streak - a.streak);
 
   // Arrière gauche — Le meilleur sur les matchs de l'équipe de France
-  const franceMatches = ALL_MATCHES.filter(m => (m.home === 'France' || m.away === 'France') && allResults[m.id]);
+  const normTeam = s => (s || '').toString().trim().toLowerCase();
+  const franceMatches = ALL_MATCHES.filter(m => (normTeam(m.home).includes('france') || normTeam(m.away).includes('france')) && allResults[m.id]);
   const francePtsMap = {};
   const franceRanking = (players || []).map(p => {
     const predMap = {};
@@ -2902,30 +2903,26 @@ async function computeOnzeType() {
     return { pseudo: p.pseudo, points };
   }).sort((a, b) => b.points - a.points);
 
-  // Arrière droit — Scores exacts trouvés en solo : le seul à avoir eu le bon score sur un match donné
-  const predsByMatch = {};
-  Object.entries(pronosByPseudo).forEach(([pseudo, arr]) => {
-    (arr || []).forEach(x => {
-      const key = String(x.match_id);
-      if (!predsByMatch[key]) predsByMatch[key] = [];
-      predsByMatch[key].push({ pseudo, home: x.home, away: x.away });
+  // Arrière droit — Le plus efficace : meilleur ratio (bons résultats + scores exacts) / pronostics soumis
+  const efficiencyStats = (players || []).map(p => {
+    const predMap = {};
+    (pronosByPseudo[p.pseudo] || []).forEach(x => { predMap[String(x.match_id)] = x; });
+    let exact = 0, bon = 0, mauvais = 0, total = 0;
+    resultedMatches.forEach(m => {
+      const res = allResults[m.id];
+      const pr = predMap[String(m.id)];
+      if (!pr || pr.home === '' || pr.away === '' || pr.home == null || pr.away == null) return;
+      total++;
+      const isExact = Number(pr.home) === Number(res.home) && Number(pr.away) === Number(res.away);
+      const trendGood = Math.sign(pr.home - pr.away) === Math.sign(res.home - res.away);
+      if (isExact) exact++;
+      else if (trendGood) bon++;
+      else mauvais++;
     });
-  });
-  const soloExactCounts = {};
-  resultedMatches.forEach(m => {
-    const res = allResults[m.id];
-    const preds = predsByMatch[String(m.id)] || [];
-    const finders = preds.filter(pr =>
-      pr.home !== '' && pr.away !== '' && pr.home != null && pr.away != null &&
-      Number(pr.home) === Number(res.home) && Number(pr.away) === Number(res.away)
-    );
-    if (finders.length === 1) {
-      soloExactCounts[finders[0].pseudo] = (soloExactCounts[finders[0].pseudo] || 0) + 1;
-    }
-  });
-  const soloExact = Object.entries(soloExactCounts)
-    .map(([pseudo, count]) => ({ pseudo, count }))
-    .sort((a, b) => b.count - a.count);
+    const ratio = total ? (bon + exact) / total : 0;
+    return { pseudo: p.pseudo, exact, bon, mauvais, total, ratio };
+  }).filter(s => s.total > 0);
+  const efficaces = [...efficiencyStats].sort((a, b) => b.ratio - a.ratio);
 
   // Milieu offensif — Le plus près du nombre de buts total du tournoi (pronostic spécial "buts exacts")
   let closestGoals = [];
@@ -2965,7 +2962,7 @@ async function computeOnzeType() {
   const lw = pick(streaks, { eligibleOnly: true, ok: r => r.streak > 0 });
   const cam = pick(closestGoals, { eligibleOnly: true });
   const lb = pick(franceRanking, { ok: r => r.points > 0 });
-  const rb = pick(soloExact, { eligibleOnly: true, ok: r => r.count > 0 });
+  const rb = pick(efficaces, { eligibleOnly: true });
 
   // Ordre de retour = ordre d'affichage sur le terrain (attaque → gardien)
   return [
@@ -2978,7 +2975,7 @@ async function computeOnzeType() {
     { pos: 'LB', label: lb ? (lb.rank === 1 ? `Meilleur sur les matchs de la France (${francePtsMap[lb.pseudo]} pts)` : `${ord(lb.rank)} sur les matchs de la France (${francePtsMap[lb.pseudo]} pts)`) : 'Meilleur sur les matchs de la France', pseudo: lb && lb.pseudo },
     { pos: 'CB', label: cb1 ? (cb1.rank === 1 ? 'Meilleur Phase de groupes' : `${ord(cb1.rank)} Phase de groupes`) : 'Meilleur Phase de groupes', pseudo: cb1 && cb1.pseudo },
     { pos: 'CB', label: cb2 ? (cb2.rank === 1 ? 'Meilleur Phase finale' : `${ord(cb2.rank)} Phase finale`) : 'Meilleur Phase finale', pseudo: cb2 && cb2.pseudo },
-    { pos: 'RB', label: rb ? `Seul à avoir trouvé le score exact (×${soloExactCounts[rb.pseudo]})` : 'Scores exacts trouvés seul', pseudo: rb && rb.pseudo },
+    { pos: 'RB', label: 'Le plus efficace', pseudo: rb && rb.pseudo },
     { pos: 'GK', label: 'Plus forte remontée en phase finale', pseudo: gk && gk.pseudo },
   ];
 }
@@ -3004,8 +3001,8 @@ const ONZE_POS_LABELS = {
   DM: 'Milieu défensif', LB: 'Arrière gauche', CB: 'Défenseur central', RB: 'Arrière droit', GK: 'Gardien'
 };
 function buildOnzeTypeHTML(team) {
-  const chip = p => `<div style="background:rgba(255,255,255,0.95);border-radius:10px;padding:8px;width:110px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.25)">
-      <div style="font-weight:700;color:#1f2937;font-size:14px;line-height:1.2">${p.pseudo || '?'}</div>
+  const chip = p => `<div style="background:rgba(255,255,255,0.95);border-radius:10px;padding:10px 16px;width:auto;min-width:150px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.25)">
+      <div style="font-weight:700;color:#1f2937;font-size:15px;line-height:1.2;white-space:nowrap">${p.pseudo || '?'}</div>
     </div>`;
   const line = arr => `<div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap">${arr.map(chip).join('')}</div>`;
   const byPos = {};
