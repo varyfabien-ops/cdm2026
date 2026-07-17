@@ -2739,6 +2739,35 @@ async function generateDiploma(pseudo, prenom, nom) {
   }
 }
 // ── Page publique de résultats ──────────────────────────────────────────────
+async function computeTeamRanking(teamName) {
+  await loadResults();
+  const { data: players } = await sb.from('players').select('pseudo');
+  const { data: allPronos } = await sb.from('pronos').select('pseudo,match_id,home,away').neq('match_id', 'special').limit(20000);
+  const pronosByPseudo = {};
+  (allPronos || []).forEach(r => {
+    if (!pronosByPseudo[r.pseudo]) pronosByPseudo[r.pseudo] = [];
+    pronosByPseudo[r.pseudo].push(r);
+  });
+  const normTeam = s => (s || '').toString().trim().toLowerCase();
+  const target = normTeam(teamName);
+  const teamMatches = ALL_MATCHES.filter(m => (normTeam(m.home) === target || normTeam(m.away) === target) && allResults[m.id]);
+  const ranking = (players || []).map(p => {
+    const predMap = {};
+    (pronosByPseudo[p.pseudo] || []).forEach(x => { predMap[String(x.match_id)] = x; });
+    let points = 0, exact = 0, predicted = 0;
+    teamMatches.forEach(m => {
+      const res = allResults[m.id];
+      const pr = predMap[String(m.id)];
+      if (!pr || pr.home === '' || pr.away === '' || pr.home == null || pr.away == null) return;
+      predicted++;
+      const mult = PHASE_MULT[m.phase] || 1;
+      if (Number(pr.home) === Number(res.home) && Number(pr.away) === Number(res.away)) { points += 3 * mult; exact++; }
+      else if (Math.sign(pr.home - pr.away) === Math.sign(res.home - res.away)) points += 1 * mult;
+    });
+    return { pseudo: p.pseudo, points, exact, predicted };
+  }).filter(r => r.predicted > 0).sort((a, b) => b.points - a.points);
+  return { ranking, matchCount: teamMatches.length };
+}
 async function computeSpecialRanking() {
   await loadResults();
   const { data: players } = await sb.from('players').select('pseudo');
@@ -3103,6 +3132,7 @@ async function renderPublicResults() {
         <button onclick="switchPublicTab('finale', this)">🔥 Phase finale</button>
         <button onclick="switchPublicTab('speciaux', this)">🎯 Pronostics spéciaux</button>
         <button onclick="switchPublicTab('chance', this)">🎯 Efficacité</button>
+        <button onclick="switchPublicTab('team', this)">🌍 Par équipe</button>
         <button onclick="switchPublicTab('onze', this)">⚽ Onze Type</button>
       </div>
       <div id="public-tab-general">
@@ -3144,6 +3174,15 @@ async function renderPublicResults() {
           { key: 'pct', label: 'Efficacité', width: '100px' }
         ])}
       </div>
+      <div id="public-tab-team" style="display:none">
+        <h3 style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:1.2rem;margin:0 0 8px">🌍 Classement par équipe</h3>
+        <p style="color:var(--text2);font-size:12px;margin:-4px 0 10px">Choisis une équipe pour voir qui a le mieux pronostiqué ses matchs</p>
+        <select id="public-team-select" class="form-input" style="max-width:320px;margin-bottom:16px" onchange="loadPublicTeamRanking()">
+          <option value="">— Choisir une équipe —</option>
+          ${[...TEAMS].sort((a, b) => a.localeCompare(b)).map(t => `<option value="${t}">${t}</option>`).join('')}
+        </select>
+        <div id="public-team-results"></div>
+      </div>
       <div id="public-tab-onze" style="display:none">
         <h2 style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;text-align:center;font-size:1.6rem;margin-bottom:4px">⚽ LE ONZE TYPE DU CONCOURS</h2>
         <p style="text-align:center;color:var(--text2);font-size:13px;margin:0 0 14px">Il fallait avoir pronostiqué au moins 75% des matchs déjà joués pour être éligible</p>
@@ -3155,12 +3194,38 @@ async function renderPublicResults() {
   }
 }
 function switchPublicTab(tab, btn) {
-  ['general', 'groupes', 'finale', 'speciaux', 'chance', 'onze'].forEach(t => {
+  ['general', 'groupes', 'finale', 'speciaux', 'chance', 'team', 'onze'].forEach(t => {
     const el = document.getElementById('public-tab-' + t);
     if (el) el.style.display = (t === tab) ? '' : 'none';
   });
   document.querySelectorAll('#public-tabs button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+}
+async function loadPublicTeamRanking() {
+  const select = document.getElementById('public-team-select');
+  const container = document.getElementById('public-team-results');
+  if (!select || !container) return;
+  const team = select.value;
+  if (!team) { container.innerHTML = ''; return; }
+  container.innerHTML = '<div class="empty-state"><p>Chargement…</p></div>';
+  try {
+    const { ranking, matchCount } = await computeTeamRanking(team);
+    if (!matchCount) {
+      container.innerHTML = `<div class="empty-state"><p>Aucun match de ${team} n'a encore de résultat.</p></div>`;
+      return;
+    }
+    container.innerHTML = buildPublicRankingTable(
+      `${team} — ${matchCount} match${matchCount > 1 ? 's' : ''} joué${matchCount > 1 ? 's' : ''}`,
+      ranking,
+      [
+        { key: 'points', label: 'Points', width: '100px' },
+        { key: 'exact', label: 'Scores exacts', width: '120px' }
+      ]
+    );
+  } catch (e) {
+    console.error(e);
+    container.innerHTML = '<div class="empty-state"><p>Erreur de chargement.</p></div>';
+  }
 }
 async function togglePublicMosaic(pseudo, rid) {
   const el = document.getElementById(rid);
