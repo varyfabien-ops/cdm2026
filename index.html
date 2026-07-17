@@ -2743,38 +2743,39 @@ async function computeSpecialRanking() {
   await loadResults();
   const { data: players } = await sb.from('players').select('pseudo');
   const { data: specialPronos } = await sb.from('pronos').select('pseudo,special').eq('match_id', 'special');
-  const scores = {};
-  (players || []).forEach(p => { scores[p.pseudo] = 0; });
+  const stats = {};
+  (players || []).forEach(p => { stats[p.pseudo] = { points: 0, winnerPts: 0, top4Pts: 0, goalsPts: 0 }; });
   (specialPronos || []).forEach(r => {
     const special = r.special || {};
-    let pts = 0;
+    let winnerPts = 0, top4Pts = 0, goalsPts = 0;
     if (specialResults) {
-      if (special.winner && specialResults.winner === special.winner) pts += 20;
-      (special.top4 || []).forEach(t => { if ((specialResults.top4 || []).includes(t)) pts += 5; });
+      if (special.winner && specialResults.winner === special.winner) winnerPts = 20;
+      (special.top4 || []).forEach(t => { if ((specialResults.top4 || []).includes(t)) top4Pts += 5; });
       if (special.totalgoals !== undefined && special.totalgoals !== '' &&
           specialResults.totalgoals !== undefined && specialResults.totalgoals !== '') {
-        if (Number(special.totalgoals) === Number(specialResults.totalgoals)) pts += 10;
+        if (Number(special.totalgoals) === Number(specialResults.totalgoals)) goalsPts = 10;
       }
     }
-    scores[r.pseudo] = pts;
+    stats[r.pseudo] = { points: winnerPts + top4Pts + goalsPts, winnerPts, top4Pts, goalsPts };
   });
-  return Object.entries(scores)
-    .map(([pseudo, points]) => ({ pseudo, points }))
+  return Object.entries(stats)
+    .map(([pseudo, s]) => ({ pseudo, ...s }))
     .sort((a, b) => b.points - a.points);
 }
-function buildPublicMiniTable(title, list) {
+function buildPublicRankingTable(title, list, columns) {
+  // columns: [{ key, label, width }]
+  const colWidths = columns.map(c => c.width || '90px').join(' ');
+  const gridTemplate = `40px 1fr ${colWidths}`;
   const rows = list.map((r, i) => `
-    <div class="rank-row" style="grid-template-columns:40px 1fr 70px">
+    <div class="rank-row" style="grid-template-columns:${gridTemplate}">
       <div class="rank-num">${i < 3 ? ['🥇', '🥈', '🥉'][i] : '#' + (i + 1)}</div>
       <div class="rank-pseudo">${r.pseudo}</div>
-      <div class="rank-pts" style="text-align:center">${r.points}</div>
+      ${columns.map(c => `<div style="text-align:center">${r[c.key] ?? 0}</div>`).join('')}
     </div>`).join('');
   return `<div class="ranking-card" style="border:1px solid var(--gold);border-radius:12px;overflow:hidden">
-    <div style="padding:10px 14px;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;background:var(--bg3);border-bottom:1px solid var(--border)">${title}</div>
-    <div style="max-height:360px;overflow-y:auto">
-      <div class="rank-row header" style="grid-template-columns:40px 1fr 70px"><div></div><div>Participant</div><div style="text-align:center">Pts</div></div>
-      ${rows || '<div class="empty-state"><p>Aucune donnée</p></div>'}
-    </div>
+    ${title ? `<div style="padding:10px 14px;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;background:var(--bg3);border-bottom:1px solid var(--border)">${title}</div>` : ''}
+    <div class="rank-row header" style="grid-template-columns:${gridTemplate}"><div></div><div>Participant</div>${columns.map(c => `<div style="text-align:center">${c.label}</div>`).join('')}</div>
+    ${rows || '<div class="empty-state"><p>Aucune donnée</p></div>'}
   </div>`;
 }
 async function computeOnzeType() {
@@ -2798,11 +2799,18 @@ async function computeOnzeType() {
   const orderedMatches = resultedMatches.filter(m => String(m.id) in orderMap)
     .sort((a, b) => orderMap[String(a.id)] - orderMap[String(b.id)]);
   const totalMatchesCount = ALL_MATCHES.length;
-
-  // Seuls les joueurs ayant pronostiqué TOUS les matchs sont éligibles au Onze Type
+  // Seuls les joueurs ayant pronostiqué TOUS les matchs déjà joués sont éligibles au Onze Type
+  // (on ne peut pas exiger les 104 matchs : les phases finales à venir ne sont pas encore ouvertes au pronostic)
   const eligible = new Set(
     (players || [])
-      .filter(p => (pronosByPseudo[p.pseudo] || []).length === totalMatchesCount)
+      .filter(p => {
+        const predMap = {};
+        (pronosByPseudo[p.pseudo] || []).forEach(x => { predMap[String(x.match_id)] = x; });
+        return resultedMatches.every(m => {
+          const pr = predMap[String(m.id)];
+          return pr && pr.home !== '' && pr.away !== '' && pr.home != null && pr.away != null;
+        });
+      })
       .map(p => p.pseudo)
   );
   const onlyEligible = list => list.filter(r => eligible.has(r.pseudo));
@@ -2964,16 +2972,25 @@ async function renderPublicResults() {
     };
     const specialRanking = specialRankingRaw.filter(r => participantsSpecial.has(r.pseudo));
 
+    // Cartes de correspondance pseudo -> points par catégorie, pour enrichir le classement général
+    const groupPtsMap = {}; phaseRankingsRaw.groupes.forEach(r => { groupPtsMap[r.pseudo] = r.points; });
+    const finalePtsMap = {}; phaseRankingsRaw.finale.forEach(r => { finalePtsMap[r.pseudo] = r.points; });
+    const specialPtsMap = {}; specialRankingRaw.forEach(r => { specialPtsMap[r.pseudo] = r.points; });
+
+    const overallGrid = '40px 1fr 90px 95px 90px 100px 100px 105px 105px';
     const overallRows = overall.map((r, i) => {
       const medals = ['🥇', '🥈', '🥉'];
       const cls = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
       const safePseudo = r.pseudo.replace(/[^a-z0-9]/gi, '_');
       const rid = 'pubmos-' + safePseudo;
       const eid = 'pubevo-' + safePseudo;
-      return `<div class="rank-row" style="grid-template-columns:40px 1fr 80px 100px 110px 110px">
+      return `<div class="rank-row" style="grid-template-columns:${overallGrid}">
           <div class="rank-num ${cls}">${medals[i] || ('#' + (i + 1))}</div>
           <div class="rank-pseudo">${r.pseudo}</div>
           <div class="rank-pts" style="text-align:center">${r.points}</div>
+          <div style="text-align:center">${groupPtsMap[r.pseudo] || 0}</div>
+          <div style="text-align:center">${finalePtsMap[r.pseudo] || 0}</div>
+          <div style="text-align:center">${specialPtsMap[r.pseudo] || 0}</div>
           <div class="rank-exact" style="text-align:center">${r.exact}</div>
           <div style="text-align:center"><button class="btn btn-outline btn-sm" style="font-size:12px;padding:4px 8px" onclick="togglePublicMosaic('${r.pseudo.replace(/'/g, "\\'")}','${rid}')">🎨 Mosaïque</button></div>
           <div style="text-align:center"><button class="btn btn-outline btn-sm" style="font-size:12px;padding:4px 8px" onclick="togglePublicEvolution('${r.pseudo.replace(/'/g, "\\'")}','${eid}')">📈 Évolution</button></div>
@@ -2991,21 +3008,32 @@ async function renderPublicResults() {
         <button onclick="switchPublicTab('onze', this)">⚽ Onze Type</button>
       </div>
       <div id="public-tab-general">
-        <div class="ranking-card" style="border:1px solid var(--gold);border-radius:12px;overflow:hidden">
-          <div class="rank-row header" style="grid-template-columns:40px 1fr 80px 100px 110px 110px">
-            <div></div><div>Participant</div><div style="text-align:center">Points</div><div style="text-align:center">Scores exacts</div><div></div><div></div>
+        <div class="ranking-card" style="border:1px solid var(--gold);border-radius:12px;overflow:hidden;overflow-x:auto">
+          <div class="rank-row header" style="grid-template-columns:${overallGrid};min-width:820px">
+            <div></div><div>Participant</div><div style="text-align:center">Points totaux</div><div style="text-align:center">Pts Groupes</div><div style="text-align:center">Pts Finale</div><div style="text-align:center">Pts Spéciaux</div><div style="text-align:center">Scores exacts</div><div></div><div></div>
           </div>
-          ${overallRows || '<div class="empty-state"><p>Aucun participant.</p></div>'}
+          <div style="min-width:820px">${overallRows || '<div class="empty-state"><p>Aucun participant.</p></div>'}</div>
         </div>
       </div>
       <div id="public-tab-groupes" style="display:none">
-        ${buildPublicMiniTable('Phase de groupes', phaseRankings.groupes)}
+        ${buildPublicRankingTable('', phaseRankings.groupes, [
+          { key: 'points', label: 'Points Totaux', width: '120px' },
+          { key: 'exact', label: 'Scores Exacts', width: '120px' }
+        ])}
       </div>
       <div id="public-tab-finale" style="display:none">
-        ${buildPublicMiniTable('Phase finale', phaseRankings.finale)}
+        ${buildPublicRankingTable('', phaseRankings.finale, [
+          { key: 'points', label: 'Points Totaux', width: '120px' },
+          { key: 'exact', label: 'Scores Exacts', width: '120px' }
+        ])}
       </div>
       <div id="public-tab-speciaux" style="display:none">
-        ${buildPublicMiniTable('Pronostics spéciaux', specialRanking)}
+        ${buildPublicRankingTable('', specialRanking, [
+          { key: 'points', label: 'Points Totaux', width: '100px' },
+          { key: 'top4Pts', label: 'Points Top 4', width: '100px' },
+          { key: 'goalsPts', label: 'Points Buts', width: '100px' },
+          { key: 'winnerPts', label: 'Points Vainqueur', width: '110px' }
+        ])}
       </div>
       <div id="public-tab-onze" style="display:none">
         <h2 style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;text-align:center;font-size:1.6rem;margin-bottom:14px">⚽ LE ONZE TYPE DU CONCOURS</h2>
