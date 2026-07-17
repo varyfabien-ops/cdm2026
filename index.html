@@ -2797,6 +2797,15 @@ async function computeOnzeType() {
   const resultedMatches = ALL_MATCHES.filter(m => allResults[m.id]);
   const orderedMatches = resultedMatches.filter(m => String(m.id) in orderMap)
     .sort((a, b) => orderMap[String(a.id)] - orderMap[String(b.id)]);
+  const totalMatchesCount = ALL_MATCHES.length;
+
+  // Seuls les joueurs ayant pronostiqué TOUS les matchs sont éligibles au Onze Type
+  const eligible = new Set(
+    (players || [])
+      .filter(p => (pronosByPseudo[p.pseudo] || []).length === totalMatchesCount)
+      .map(p => p.pseudo)
+  );
+  const onlyEligible = list => list.filter(r => eligible.has(r.pseudo));
 
   // GK — Plus forte remontée lors de la phase finale (position fin de groupes → position finale)
   let climb = [];
@@ -2831,28 +2840,28 @@ async function computeOnzeType() {
     return { pseudo: p.pseudo, streak: longest };
   }).sort((a, b) => b.streak - a.streak);
 
-  // Arrière gauche / droit — Le plus chanceux (bons résultats sans le score exact) / le plus malchanceux (à 1 but près d'avoir raison)
+  // Arrière gauche — Le plus chanceux : le plus faible ratio Mauvais résultat / 104
+  // Arrière droit — Le plus malchanceux : le plus fort ratio Bon résultat / Score exact
   const luckStats = (players || []).map(p => {
     const predMap = {};
     (pronosByPseudo[p.pseudo] || []).forEach(x => { predMap[String(x.match_id)] = x; });
-    let total = 0, bon = 0, presque = 0;
+    let exact = 0, bon = 0, mauvais = 0;
     resultedMatches.forEach(m => {
       const res = allResults[m.id];
       const pr = predMap[String(m.id)];
-      if (!pr || pr.home === '' || pr.away === '' || pr.home == null || pr.away == null) return;
-      total++;
-      const exact = Number(pr.home) === Number(res.home) && Number(pr.away) === Number(res.away);
+      if (!pr || pr.home === '' || pr.away === '' || pr.home == null || pr.away == null) { mauvais++; return; }
+      const isExact = Number(pr.home) === Number(res.home) && Number(pr.away) === Number(res.away);
       const trendGood = Math.sign(pr.home - pr.away) === Math.sign(res.home - res.away);
-      if (trendGood && !exact) bon++;
-      if (!trendGood) {
-        const dist = Math.abs(Number(pr.home) - Number(res.home)) + Math.abs(Number(pr.away) - Number(res.away));
-        if (dist === 1) presque++;
-      }
+      if (isExact) exact++;
+      else if (trendGood) bon++;
+      else mauvais++;
     });
-    return { pseudo: p.pseudo, total, luckRate: total ? bon / total : 0, unluckRate: total ? presque / total : 0 };
+    const chanceRatio = mauvais / totalMatchesCount;
+    const malchanceRatio = exact > 0 ? bon / exact : (bon > 0 ? Infinity : -1);
+    return { pseudo: p.pseudo, exact, bon, mauvais, chanceRatio, malchanceRatio };
   });
-  const chanceux = luckStats.filter(s => s.total >= 5).sort((a, b) => b.luckRate - a.luckRate);
-  const malchanceux = luckStats.filter(s => s.total >= 5).sort((a, b) => b.unluckRate - a.unluckRate);
+  const chanceux = [...luckStats].sort((a, b) => a.chanceRatio - b.chanceRatio);
+  const malchanceux = [...luckStats].filter(s => s.malchanceRatio >= 0).sort((a, b) => b.malchanceRatio - a.malchanceRatio);
 
   // Milieu offensif — Le plus près du nombre de buts total du tournoi (pronostic spécial "buts exacts")
   let closestGoals = [];
@@ -2865,7 +2874,7 @@ async function computeOnzeType() {
 
   const used = new Set();
   function pick(list, ok) {
-    for (const item of list) {
+    for (const item of onlyEligible(list)) {
       if (item.pseudo && !used.has(item.pseudo) && (!ok || ok(item))) { used.add(item.pseudo); return item.pseudo; }
     }
     return null;
@@ -2924,38 +2933,81 @@ async function renderPublicResults() {
   const container = document.getElementById('public-content');
   container.innerHTML = '<div class="empty-state"><p>Chargement…</p></div>';
   try {
-    const [overall, phaseRankings, specialRanking, onzeType] = await Promise.all([
+    const [overallRaw, phaseRankingsRaw, specialRankingRaw, onzeType, { data: allPronosLight }, { data: specialPronosLight }] = await Promise.all([
       computeFullRankingForDiploma(),
       computePhaseRankings(),
       computeSpecialRanking(),
-      computeOnzeType()
+      computeOnzeType(),
+      sb.from('pronos').select('pseudo,match_id').neq('match_id', 'special').limit(20000),
+      sb.from('pronos').select('pseudo,special').eq('match_id', 'special')
     ]);
+    // Participation réelle : a soumis au moins un pronostic (peu importe le score obtenu, 0 point ≠ pas pronostiqué)
+    const participantsAll = new Set();
+    const participantsGroupes = new Set();
+    const participantsFinale = new Set();
+    (allPronosLight || []).forEach(r => {
+      participantsAll.add(r.pseudo);
+      const m = ALL_MATCHES.find(mm => String(mm.id) === String(r.match_id));
+      if (m) { (m.phase.startsWith('Groupe') ? participantsGroupes : participantsFinale).add(r.pseudo); }
+    });
+    const participantsSpecial = new Set();
+    (specialPronosLight || []).forEach(r => {
+      const sp = r.special || {};
+      if (sp.winner || (sp.top4 && sp.top4.length) || (sp.totalgoals !== undefined && sp.totalgoals !== '' && sp.totalgoals !== null)) {
+        participantsSpecial.add(r.pseudo);
+      }
+    });
+    const overall = overallRaw.filter(r => participantsAll.has(r.pseudo));
+    const phaseRankings = {
+      groupes: phaseRankingsRaw.groupes.filter(r => participantsGroupes.has(r.pseudo)),
+      finale: phaseRankingsRaw.finale.filter(r => participantsFinale.has(r.pseudo))
+    };
+    const specialRanking = specialRankingRaw.filter(r => participantsSpecial.has(r.pseudo));
+
     const overallRows = overall.map((r, i) => {
       const medals = ['🥇', '🥈', '🥉'];
       const cls = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-      const rid = 'pubmos-' + r.pseudo.replace(/[^a-z0-9]/gi, '_');
-      return `<div class="rank-row" style="grid-template-columns:40px 1fr 80px 110px 120px">
+      const safePseudo = r.pseudo.replace(/[^a-z0-9]/gi, '_');
+      const rid = 'pubmos-' + safePseudo;
+      const eid = 'pubevo-' + safePseudo;
+      return `<div class="rank-row" style="grid-template-columns:40px 1fr 80px 100px 110px 110px">
           <div class="rank-num ${cls}">${medals[i] || ('#' + (i + 1))}</div>
           <div class="rank-pseudo">${r.pseudo}</div>
           <div class="rank-pts" style="text-align:center">${r.points}</div>
           <div class="rank-exact" style="text-align:center">${r.exact}</div>
-          <div style="text-align:center"><button class="btn btn-outline btn-sm" style="font-size:12px;padding:4px 10px" onclick="togglePublicMosaic('${r.pseudo.replace(/'/g, "\\'")}','${rid}')">🎨 Mosaïque</button></div>
+          <div style="text-align:center"><button class="btn btn-outline btn-sm" style="font-size:12px;padding:4px 8px" onclick="togglePublicMosaic('${r.pseudo.replace(/'/g, "\\'")}','${rid}')">🎨 Mosaïque</button></div>
+          <div style="text-align:center"><button class="btn btn-outline btn-sm" style="font-size:12px;padding:4px 8px" onclick="togglePublicEvolution('${r.pseudo.replace(/'/g, "\\'")}','${eid}')">📈 Évolution</button></div>
         </div>
-        <div id="${rid}" style="display:none;padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border)"></div>`;
+        <div id="${rid}" style="display:none;padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border)"></div>
+        <div id="${eid}" style="display:none;padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border)"></div>`;
     }).join('');
+
     container.innerHTML = `
-      <div class="ranking-card" style="border:1px solid var(--gold);border-radius:12px;overflow:hidden">
-        <div class="rank-row header" style="grid-template-columns:40px 1fr 80px 110px 120px">
-          <div></div><div>Participant</div><div style="text-align:center">Points</div><div style="text-align:center">Scores exacts</div><div></div>
-        </div>
-        ${overallRows || '<div class="empty-state"><p>Aucun participant.</p></div>'}
+      <div class="tab-sub" id="public-tabs" style="justify-content:center">
+        <button class="active" onclick="switchPublicTab('general', this)">🏆 Classement général</button>
+        <button onclick="switchPublicTab('groupes', this)">📋 Phase de groupes</button>
+        <button onclick="switchPublicTab('finale', this)">🔥 Phase finale</button>
+        <button onclick="switchPublicTab('speciaux', this)">🎯 Pronostics spéciaux</button>
+        <button onclick="switchPublicTab('onze', this)">⚽ Onze Type</button>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin:24px 0 0">
+      <div id="public-tab-general">
+        <div class="ranking-card" style="border:1px solid var(--gold);border-radius:12px;overflow:hidden">
+          <div class="rank-row header" style="grid-template-columns:40px 1fr 80px 100px 110px 110px">
+            <div></div><div>Participant</div><div style="text-align:center">Points</div><div style="text-align:center">Scores exacts</div><div></div><div></div>
+          </div>
+          ${overallRows || '<div class="empty-state"><p>Aucun participant.</p></div>'}
+        </div>
+      </div>
+      <div id="public-tab-groupes" style="display:none">
         ${buildPublicMiniTable('Phase de groupes', phaseRankings.groupes)}
+      </div>
+      <div id="public-tab-finale" style="display:none">
         ${buildPublicMiniTable('Phase finale', phaseRankings.finale)}
+      </div>
+      <div id="public-tab-speciaux" style="display:none">
         ${buildPublicMiniTable('Pronostics spéciaux', specialRanking)}
       </div>
-      <div style="margin-top:32px">
+      <div id="public-tab-onze" style="display:none">
         <h2 style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;text-align:center;font-size:1.6rem;margin-bottom:14px">⚽ LE ONZE TYPE DU CONCOURS</h2>
         ${buildOnzeTypeHTML(onzeType)}
       </div>`;
@@ -2963,6 +3015,14 @@ async function renderPublicResults() {
     console.error(e);
     container.innerHTML = '<div class="empty-state"><p>Erreur de chargement. Réessaie plus tard.</p></div>';
   }
+}
+function switchPublicTab(tab, btn) {
+  ['general', 'groupes', 'finale', 'speciaux', 'onze'].forEach(t => {
+    const el = document.getElementById('public-tab-' + t);
+    if (el) el.style.display = (t === tab) ? '' : 'none';
+  });
+  document.querySelectorAll('#public-tabs button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
 }
 async function togglePublicMosaic(pseudo, rid) {
   const el = document.getElementById(rid);
@@ -2983,6 +3043,25 @@ async function togglePublicMosaic(pseudo, rid) {
         el.dataset.loaded = '1';
       } catch (e) {
         el.innerHTML = '<p style="font-size:13px;color:var(--red)">Erreur de chargement de la mosaïque.</p>';
+      }
+    }
+  } else {
+    el.style.display = 'none';
+  }
+}
+async function togglePublicEvolution(pseudo, eid) {
+  const el = document.getElementById(eid);
+  if (!el) return;
+  if (el.style.display === 'none' || !el.style.display) {
+    el.style.display = 'block';
+    if (!el.dataset.loaded) {
+      el.innerHTML = '<p style="font-size:13px;color:var(--text2)">Chargement…</p>';
+      try {
+        const evolution = await getPlayerEvolution(pseudo);
+        el.innerHTML = `<div style="display:flex;justify-content:center;background:#fff;border-radius:8px;padding:8px">${buildEvolutionSVG(evolution, 480, 130)}</div>`;
+        el.dataset.loaded = '1';
+      } catch (e) {
+        el.innerHTML = '<p style="font-size:13px;color:var(--red)">Erreur de chargement de la courbe.</p>';
       }
     }
   } else {
