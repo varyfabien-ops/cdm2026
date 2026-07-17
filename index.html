@@ -2799,17 +2799,20 @@ async function computeOnzeType() {
   const orderedMatches = resultedMatches.filter(m => String(m.id) in orderMap)
     .sort((a, b) => orderMap[String(a.id)] - orderMap[String(b.id)]);
   const totalMatchesCount = ALL_MATCHES.length;
-  // Seuls les joueurs ayant pronostiqué TOUS les matchs déjà joués sont éligibles au Onze Type
+  // Sont éligibles au Onze Type les joueurs ayant pronostiqué au moins 75% des matchs déjà joués
   // (on ne peut pas exiger les 104 matchs : les phases finales à venir ne sont pas encore ouvertes au pronostic)
+  const ELIGIBILITY_THRESHOLD = 0.75;
   const eligible = new Set(
     (players || [])
       .filter(p => {
+        if (!resultedMatches.length) return true;
         const predMap = {};
         (pronosByPseudo[p.pseudo] || []).forEach(x => { predMap[String(x.match_id)] = x; });
-        return resultedMatches.every(m => {
+        const validCount = resultedMatches.filter(m => {
           const pr = predMap[String(m.id)];
           return pr && pr.home !== '' && pr.away !== '' && pr.home != null && pr.away != null;
-        });
+        }).length;
+        return (validCount / resultedMatches.length) >= ELIGIBILITY_THRESHOLD;
       })
       .map(p => p.pseudo)
   );
@@ -2881,39 +2884,49 @@ async function computeOnzeType() {
   }
 
   const used = new Set();
-  function pick(list, ok) {
-    for (const item of onlyEligible(list)) {
-      if (item.pseudo && !used.has(item.pseudo) && (!ok || ok(item))) { used.add(item.pseudo); return item.pseudo; }
+  function pick(list, opts) {
+    opts = opts || {};
+    const src = opts.eligibleOnly ? onlyEligible(list) : list;
+    for (let i = 0; i < src.length; i++) {
+      const item = src[i];
+      if (item.pseudo && !used.has(item.pseudo) && (!opts.ok || opts.ok(item))) {
+        used.add(item.pseudo);
+        return { pseudo: item.pseudo, rank: i + 1 };
+      }
     }
     return null;
   }
+  const ord = n => n === 1 ? '1er' : `${n}e`;
 
-  // Ordre d'attribution : du plus déterminant au plus accessoire, pour éviter les doublons sur les meilleurs
+  // Ordre d'attribution : du plus déterminant au plus accessoire, pour éviter les doublons sur les meilleurs.
+  // Les classements officiels (concours, phases, spéciaux) ne filtrent pas sur l'éligibilité "tout pronostiqué" :
+  // la position officielle prime toujours. Seules les statistiques annexes (série, chance, buts) exigent
+  // d'avoir tout pronostiqué, pour une comparaison équitable.
   const st = pick(overall);
-  const rw = pick(specialRanking, r => r.points > 0);
+  const rw = pick(specialRanking, { ok: r => r.points > 0 });
   const cb1 = pick(phaseRankings.groupes);
   const cb2 = pick(phaseRankings.finale);
   const dm1 = pick(overall);
   const dm2 = pick(overall);
-  const gk = pick(climb, r => r.gain > 0);
-  const lw = pick(streaks, r => r.streak > 0);
-  const cam = pick(closestGoals);
-  const lb = pick(chanceux);
-  const rb = pick(malchanceux);
+  const gk = pick(climb, { eligibleOnly: true, ok: r => r.gain > 0 });
+  const lw = pick(streaks, { eligibleOnly: true, ok: r => r.streak > 0 });
+  const cam = pick(closestGoals, { eligibleOnly: true });
+  const lb = pick(chanceux, { eligibleOnly: true });
+  const rb = pick(malchanceux, { eligibleOnly: true });
 
   // Ordre de retour = ordre d'affichage sur le terrain (attaque → gardien)
   return [
-    { pos: 'ST', label: 'Vainqueur du concours', pseudo: st },
-    { pos: 'LW', label: 'Meilleure série de bons résultats', pseudo: lw },
-    { pos: 'CAM', label: 'Le plus près du nombre de buts total', pseudo: cam },
-    { pos: 'RW', label: 'Leader Pronostics spéciaux', pseudo: rw },
-    { pos: 'DM', label: '2e du concours', pseudo: dm1 },
-    { pos: 'DM', label: '3e du concours', pseudo: dm2 },
-    { pos: 'LB', label: 'Le plus chanceux', pseudo: lb },
-    { pos: 'CB', label: 'Meilleur Phase de groupes', pseudo: cb1 },
-    { pos: 'CB', label: 'Meilleur Phase finale', pseudo: cb2 },
-    { pos: 'RB', label: 'Le plus malchanceux', pseudo: rb },
-    { pos: 'GK', label: 'Plus forte remontée en phase finale', pseudo: gk },
+    { pos: 'ST', label: st ? (st.rank === 1 ? 'Vainqueur du concours' : `${ord(st.rank)} du concours`) : 'Vainqueur du concours', pseudo: st && st.pseudo },
+    { pos: 'LW', label: 'Meilleure série de bons résultats', pseudo: lw && lw.pseudo },
+    { pos: 'CAM', label: 'Le plus près du nombre de buts total', pseudo: cam && cam.pseudo },
+    { pos: 'RW', label: rw ? (rw.rank === 1 ? 'Leader Pronostics spéciaux' : `${ord(rw.rank)} Pronostics spéciaux`) : 'Leader Pronostics spéciaux', pseudo: rw && rw.pseudo },
+    { pos: 'DM', label: dm1 ? `${ord(dm1.rank)} du concours` : '2e du concours', pseudo: dm1 && dm1.pseudo },
+    { pos: 'DM', label: dm2 ? `${ord(dm2.rank)} du concours` : '3e du concours', pseudo: dm2 && dm2.pseudo },
+    { pos: 'LB', label: 'Le plus chanceux', pseudo: lb && lb.pseudo },
+    { pos: 'CB', label: cb1 ? (cb1.rank === 1 ? 'Meilleur Phase de groupes' : `${ord(cb1.rank)} Phase de groupes`) : 'Meilleur Phase de groupes', pseudo: cb1 && cb1.pseudo },
+    { pos: 'CB', label: cb2 ? (cb2.rank === 1 ? 'Meilleur Phase finale' : `${ord(cb2.rank)} Phase finale`) : 'Meilleur Phase finale', pseudo: cb2 && cb2.pseudo },
+    { pos: 'RB', label: 'Le plus malchanceux', pseudo: rb && rb.pseudo },
+    { pos: 'GK', label: 'Plus forte remontée en phase finale', pseudo: gk && gk.pseudo },
   ];
 }
 function buildOnzeTypeHTML(team) {
@@ -2924,11 +2937,11 @@ function buildOnzeTypeHTML(team) {
   const line = arr => `<div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap">${arr.map(chip).join('')}</div>`;
   const byPos = {};
   team.forEach(p => { (byPos[p.pos] = byPos[p.pos] || []).push(p); });
-  return `<div style="background:linear-gradient(180deg,#1b7a3d,#15602f);border-radius:16px;padding:24px 12px;position:relative;overflow:hidden;border:3px solid #fff">
+  return `<div style="background:linear-gradient(180deg,#1b7a3d,#15602f);border-radius:16px;padding:44px 12px;position:relative;overflow:hidden;border:3px solid #fff;min-height:760px;display:flex;flex-direction:column;justify-content:space-between">
     <div style="position:absolute;inset:10px;border:2px solid rgba(255,255,255,0.4);border-radius:8px;pointer-events:none"></div>
     <div style="position:absolute;top:50%;left:0;right:0;height:2px;background:rgba(255,255,255,0.4)"></div>
-    <div style="position:absolute;top:50%;left:50%;width:90px;height:90px;margin:-45px 0 0 -45px;border:2px solid rgba(255,255,255,0.4);border-radius:50%;pointer-events:none"></div>
-    <div style="position:relative;display:flex;flex-direction:column;gap:22px">
+    <div style="position:absolute;top:50%;left:50%;width:120px;height:120px;margin:-60px 0 0 -60px;border:2px solid rgba(255,255,255,0.4);border-radius:50%;pointer-events:none"></div>
+    <div style="position:relative;display:flex;flex-direction:column;justify-content:space-between;flex:1;gap:14px">
       ${line(byPos.ST || [])}
       ${line([...(byPos.LW || []), ...(byPos.CAM || []), ...(byPos.RW || [])])}
       ${line(byPos.DM || [])}
