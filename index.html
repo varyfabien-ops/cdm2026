@@ -2964,7 +2964,7 @@ async function computeOnzeType() {
   const gk = pick(climb, { eligibleOnly: true, ok: r => r.gain > 0 });
   const lw = pick(streaks, { eligibleOnly: true, ok: r => r.streak > 0 });
   const cam = pick(closestGoals, { eligibleOnly: true });
-  const lb = pick(franceRanking, { eligibleOnly: true, ok: r => r.points > 0 });
+  const lb = pick(franceRanking, { ok: r => r.points > 0 });
   const rb = pick(soloExact, { eligibleOnly: true, ok: r => r.count > 0 });
 
   // Ordre de retour = ordre d'affichage sur le terrain (attaque → gardien)
@@ -2975,7 +2975,7 @@ async function computeOnzeType() {
     { pos: 'RW', label: rw ? (rw.rank === 1 ? 'Leader Pronostics spéciaux' : `${ord(rw.rank)} Pronostics spéciaux`) : 'Leader Pronostics spéciaux', pseudo: rw && rw.pseudo },
     { pos: 'DM', label: dm1 ? `${ord(dm1.rank)} du concours` : '2e du concours', pseudo: dm1 && dm1.pseudo },
     { pos: 'DM', label: dm2 ? `${ord(dm2.rank)} du concours` : '3e du concours', pseudo: dm2 && dm2.pseudo },
-    { pos: 'LB', label: lb ? `Meilleur sur les matchs de la France (${francePtsMap[lb.pseudo]} pts)` : 'Meilleur sur les matchs de la France', pseudo: lb && lb.pseudo },
+    { pos: 'LB', label: lb ? (lb.rank === 1 ? `Meilleur sur les matchs de la France (${francePtsMap[lb.pseudo]} pts)` : `${ord(lb.rank)} sur les matchs de la France (${francePtsMap[lb.pseudo]} pts)`) : 'Meilleur sur les matchs de la France', pseudo: lb && lb.pseudo },
     { pos: 'CB', label: cb1 ? (cb1.rank === 1 ? 'Meilleur Phase de groupes' : `${ord(cb1.rank)} Phase de groupes`) : 'Meilleur Phase de groupes', pseudo: cb1 && cb1.pseudo },
     { pos: 'CB', label: cb2 ? (cb2.rank === 1 ? 'Meilleur Phase finale' : `${ord(cb2.rank)} Phase finale`) : 'Meilleur Phase finale', pseudo: cb2 && cb2.pseudo },
     { pos: 'RB', label: rb ? `Seul à avoir trouvé le score exact (×${soloExactCounts[rb.pseudo]})` : 'Scores exacts trouvés seul', pseudo: rb && rb.pseudo },
