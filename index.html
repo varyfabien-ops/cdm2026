@@ -3138,7 +3138,7 @@ async function renderPublicResults() {
       <div id="public-tab-general">
         <div class="ranking-card" style="border:1px solid var(--gold);border-radius:12px;overflow:hidden;overflow-x:auto">
           <div class="rank-row header" style="grid-template-columns:${overallGrid};min-width:820px">
-            <div></div><div>Participant</div><div style="text-align:center">Points totaux</div><div style="text-align:center">Pts Groupes</div><div style="text-align:center">Pts Finale</div><div style="text-align:center">Pts Spéciaux</div><div style="text-align:center">Scores exacts</div><div></div><div></div>
+            <div></div><div>Participant</div><div style="text-align:center">Points totaux</div><div style="text-align:center">Points Phase de Groupes</div><div style="text-align:center">Points Phase Finale</div><div style="text-align:center">Points Spéciaux</div><div style="text-align:center">Scores exacts</div><div></div><div></div>
           </div>
           <div style="min-width:820px">${overallRows || '<div class="empty-state"><p>Aucun participant.</p></div>'}</div>
         </div>
@@ -3158,8 +3158,8 @@ async function renderPublicResults() {
       <div id="public-tab-speciaux" style="display:none">
         ${buildPublicRankingTable('', specialRanking, [
           { key: 'points', label: 'Points Totaux', width: '100px' },
-          { key: 'top4Pts', label: 'Points Top 4', width: '100px' },
-          { key: 'goalsPts', label: 'Points Buts', width: '100px' },
+          { key: 'top4Pts', label: 'Points   Top 4', width: '100px' },
+          { key: 'goalsPts', label: 'Points   Buts', width: '100px' },
           { key: 'winnerPts', label: 'Points Vainqueur', width: '110px' }
         ])}
       </div>
