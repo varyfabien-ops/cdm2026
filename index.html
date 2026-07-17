@@ -2883,28 +2883,49 @@ async function computeOnzeType() {
     return { pseudo: p.pseudo, streak: longest };
   }).sort((a, b) => b.streak - a.streak);
 
-  // Arrière gauche — Le plus efficace : meilleur ratio (bons résultats + scores exacts) / pronostics soumis
-  // Arrière droit — Le moins efficace : le pire de ce même ratio
-  const efficiencyStats = (players || []).map(p => {
+  // Arrière gauche — Le meilleur sur les matchs de l'équipe de France
+  const franceMatches = ALL_MATCHES.filter(m => (m.home === 'France' || m.away === 'France') && allResults[m.id]);
+  const francePtsMap = {};
+  const franceRanking = (players || []).map(p => {
     const predMap = {};
     (pronosByPseudo[p.pseudo] || []).forEach(x => { predMap[String(x.match_id)] = x; });
-    let exact = 0, bon = 0, mauvais = 0, total = 0;
-    resultedMatches.forEach(m => {
+    let points = 0;
+    franceMatches.forEach(m => {
       const res = allResults[m.id];
       const pr = predMap[String(m.id)];
       if (!pr || pr.home === '' || pr.away === '' || pr.home == null || pr.away == null) return;
-      total++;
-      const isExact = Number(pr.home) === Number(res.home) && Number(pr.away) === Number(res.away);
-      const trendGood = Math.sign(pr.home - pr.away) === Math.sign(res.home - res.away);
-      if (isExact) exact++;
-      else if (trendGood) bon++;
-      else mauvais++;
+      const mult = PHASE_MULT[m.phase] || 1;
+      if (Number(pr.home) === Number(res.home) && Number(pr.away) === Number(res.away)) points += 3 * mult;
+      else if (Math.sign(pr.home - pr.away) === Math.sign(res.home - res.away)) points += 1 * mult;
     });
-    const ratio = total ? (bon + exact) / total : 0;
-    return { pseudo: p.pseudo, exact, bon, mauvais, total, ratio };
-  }).filter(s => s.total > 0);
-  const efficaces = [...efficiencyStats].sort((a, b) => b.ratio - a.ratio);
-  const inefficaces = [...efficiencyStats].sort((a, b) => a.ratio - b.ratio);
+    francePtsMap[p.pseudo] = points;
+    return { pseudo: p.pseudo, points };
+  }).sort((a, b) => b.points - a.points);
+
+  // Arrière droit — Scores exacts trouvés en solo : le seul à avoir eu le bon score sur un match donné
+  const predsByMatch = {};
+  Object.entries(pronosByPseudo).forEach(([pseudo, arr]) => {
+    (arr || []).forEach(x => {
+      const key = String(x.match_id);
+      if (!predsByMatch[key]) predsByMatch[key] = [];
+      predsByMatch[key].push({ pseudo, home: x.home, away: x.away });
+    });
+  });
+  const soloExactCounts = {};
+  resultedMatches.forEach(m => {
+    const res = allResults[m.id];
+    const preds = predsByMatch[String(m.id)] || [];
+    const finders = preds.filter(pr =>
+      pr.home !== '' && pr.away !== '' && pr.home != null && pr.away != null &&
+      Number(pr.home) === Number(res.home) && Number(pr.away) === Number(res.away)
+    );
+    if (finders.length === 1) {
+      soloExactCounts[finders[0].pseudo] = (soloExactCounts[finders[0].pseudo] || 0) + 1;
+    }
+  });
+  const soloExact = Object.entries(soloExactCounts)
+    .map(([pseudo, count]) => ({ pseudo, count }))
+    .sort((a, b) => b.count - a.count);
 
   // Milieu offensif — Le plus près du nombre de buts total du tournoi (pronostic spécial "buts exacts")
   let closestGoals = [];
@@ -2943,8 +2964,8 @@ async function computeOnzeType() {
   const gk = pick(climb, { eligibleOnly: true, ok: r => r.gain > 0 });
   const lw = pick(streaks, { eligibleOnly: true, ok: r => r.streak > 0 });
   const cam = pick(closestGoals, { eligibleOnly: true });
-  const lb = pick(efficaces, { eligibleOnly: true });
-  const rb = pick(inefficaces, { eligibleOnly: true });
+  const lb = pick(franceRanking, { eligibleOnly: true, ok: r => r.points > 0 });
+  const rb = pick(soloExact, { eligibleOnly: true, ok: r => r.count > 0 });
 
   // Ordre de retour = ordre d'affichage sur le terrain (attaque → gardien)
   return [
@@ -2954,10 +2975,10 @@ async function computeOnzeType() {
     { pos: 'RW', label: rw ? (rw.rank === 1 ? 'Leader Pronostics spéciaux' : `${ord(rw.rank)} Pronostics spéciaux`) : 'Leader Pronostics spéciaux', pseudo: rw && rw.pseudo },
     { pos: 'DM', label: dm1 ? `${ord(dm1.rank)} du concours` : '2e du concours', pseudo: dm1 && dm1.pseudo },
     { pos: 'DM', label: dm2 ? `${ord(dm2.rank)} du concours` : '3e du concours', pseudo: dm2 && dm2.pseudo },
-    { pos: 'LB', label: 'Le plus efficace', pseudo: lb && lb.pseudo },
+    { pos: 'LB', label: lb ? `Meilleur sur les matchs de la France (${francePtsMap[lb.pseudo]} pts)` : 'Meilleur sur les matchs de la France', pseudo: lb && lb.pseudo },
     { pos: 'CB', label: cb1 ? (cb1.rank === 1 ? 'Meilleur Phase de groupes' : `${ord(cb1.rank)} Phase de groupes`) : 'Meilleur Phase de groupes', pseudo: cb1 && cb1.pseudo },
     { pos: 'CB', label: cb2 ? (cb2.rank === 1 ? 'Meilleur Phase finale' : `${ord(cb2.rank)} Phase finale`) : 'Meilleur Phase finale', pseudo: cb2 && cb2.pseudo },
-    { pos: 'RB', label: 'Le moins efficace', pseudo: rb && rb.pseudo },
+    { pos: 'RB', label: rb ? `Seul à avoir trouvé le score exact (×${soloExactCounts[rb.pseudo]})` : 'Scores exacts trouvés seul', pseudo: rb && rb.pseudo },
     { pos: 'GK', label: 'Plus forte remontée en phase finale', pseudo: gk && gk.pseudo },
   ];
 }
@@ -2978,15 +2999,18 @@ function buildGoalNetSVG() {
     <rect x="${w - 5}" y="1" width="4" height="${h - 2}" fill="#ffffff"/>
   </svg>`;
 }
+const ONZE_POS_LABELS = {
+  ST: 'Attaquant', LW: 'Ailier gauche', CAM: 'Milieu offensif', RW: 'Ailier droit',
+  DM: 'Milieu défensif', LB: 'Arrière gauche', CB: 'Défenseur central', RB: 'Arrière droit', GK: 'Gardien'
+};
 function buildOnzeTypeHTML(team) {
-  const chip = p => `<div style="background:rgba(255,255,255,0.95);border-radius:10px;padding:6px 10px;min-width:88px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.25)">
-      <div style="font-weight:700;color:#1f2937;font-size:13px;white-space:nowrap">${p.pseudo || '?'}</div>
-      <div style="font-size:10px;color:#5b6472;line-height:1.2;margin-top:2px">${p.label}</div>
+  const chip = p => `<div style="background:rgba(255,255,255,0.95);border-radius:10px;padding:8px;width:110px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.25)">
+      <div style="font-weight:700;color:#1f2937;font-size:14px;line-height:1.2">${p.pseudo || '?'}</div>
     </div>`;
   const line = arr => `<div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap">${arr.map(chip).join('')}</div>`;
   const byPos = {};
   team.forEach(p => { (byPos[p.pos] = byPos[p.pos] || []).push(p); });
-  return `<div style="background:linear-gradient(180deg,#1b7a3d,#15602f);border-radius:16px;padding:44px 12px;position:relative;overflow:hidden;border:3px solid #fff;min-height:760px;display:flex;flex-direction:column;justify-content:space-between">
+  const pitch = `<div style="background:linear-gradient(180deg,#1b7a3d,#15602f);border-radius:16px;padding:44px 12px;position:relative;overflow:hidden;border:3px solid #fff;min-height:760px;display:flex;flex-direction:column;justify-content:space-between">
     <div style="position:absolute;inset:10px;border:2px solid rgba(255,255,255,0.4);border-radius:8px;pointer-events:none"></div>
     <div style="position:absolute;top:50%;left:0;right:0;height:2px;background:rgba(255,255,255,0.4)"></div>
     <div style="position:absolute;top:50%;left:50%;width:120px;height:120px;margin:-60px 0 0 -60px;border:2px solid rgba(255,255,255,0.4);border-radius:50%;pointer-events:none"></div>
@@ -2999,6 +3023,17 @@ function buildOnzeTypeHTML(team) {
       ${line(byPos.GK || [])}
     </div>
   </div>`;
+  const tableRows = team.map(p => `
+    <div class="rank-row" style="grid-template-columns:150px 1fr 1fr">
+      <div style="color:var(--gold);font-weight:600">${ONZE_POS_LABELS[p.pos] || p.pos}</div>
+      <div class="rank-pseudo">${p.pseudo || '?'}</div>
+      <div style="color:var(--text2);font-size:13px">${p.label}</div>
+    </div>`).join('');
+  const table = `<div class="ranking-card" style="border:1px solid var(--gold);border-radius:12px;overflow:hidden;margin-top:20px">
+    <div class="rank-row header" style="grid-template-columns:150px 1fr 1fr"><div>Poste</div><div>Joueur</div><div>Critère</div></div>
+    ${tableRows}
+  </div>`;
+  return pitch + table;
 }
 async function renderPublicResults() {
   const container = document.getElementById('public-content');
@@ -3099,7 +3134,8 @@ async function renderPublicResults() {
         ])}
       </div>
       <div id="public-tab-onze" style="display:none">
-        <h2 style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;text-align:center;font-size:1.6rem;margin-bottom:14px">⚽ LE ONZE TYPE DU CONCOURS</h2>
+        <h2 style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;text-align:center;font-size:1.6rem;margin-bottom:4px">⚽ LE ONZE TYPE DU CONCOURS</h2>
+        <p style="text-align:center;color:var(--text2);font-size:13px;margin:0 0 14px">Il fallait avoir pronostiqué au moins 75% des matchs déjà joués pour être éligible</p>
         ${buildOnzeTypeHTML(onzeType)}
       </div>`;
   } catch (e) {
