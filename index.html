@@ -120,6 +120,7 @@ select.form-input{appearance:none;cursor:pointer}
 .rank-row{display:grid;grid-template-columns:50px 1fr 90px 110px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border);transition:background .15s}
 .rank-row:last-child{border-bottom:none}
 .rank-row.header{background:var(--bg3);font-size:13px;color:var(--text3);text-transform:uppercase;letter-spacing:1px}
+.rank-row.header>div{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.25}
 .rank-row:not(.header):hover{background:var(--bg3)}
 .rank-num{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--text3);text-align:center}
 .rank-num.gold{color:var(--gold);text-shadow:0 0 12px rgba(251,191,36,0.5);font-size:1.4rem}
@@ -2593,8 +2594,8 @@ async function computeMatchGridData(pseudo) {
     return { id: m.id, status };
   });
 }
-function buildEvolutionSVG(evolution, w, h) {
-  w = w || 560; h = h || 170;
+function buildEvolutionSVG(evolution, w, h, color) {
+  w = w || 560; h = h || 170; color = color || '#374151';
   if (!evolution || evolution.length < 2) {
     return '<div style="color:#8a94a3;font-size:12px;padding:' + (h / 2 - 10) + 'px 0">Pas encore assez de données</div>';
   }
@@ -2622,7 +2623,7 @@ function buildEvolutionSVG(evolution, w, h) {
     d += ` C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
   }
   return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
-    <path d="${d}" fill="none" stroke="#374151" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="${d}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>`;
 }
 function buildMatchGridSVG(matches) {
@@ -2795,12 +2796,16 @@ function buildPublicRankingTable(title, list, columns) {
   // columns: [{ key, label, width }]
   const colWidths = columns.map(c => c.width || '90px').join(' ');
   const gridTemplate = `40px 1fr ${colWidths}`;
-  const rows = list.map((r, i) => `
+  const cellClass = key => key === 'points' ? 'rank-pts' : key === 'exact' ? 'rank-exact' : '';
+  const rows = list.map((r, i) => {
+    const cls = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    return `
     <div class="rank-row" style="grid-template-columns:${gridTemplate}">
-      <div class="rank-num">${i < 3 ? ['🥇', '🥈', '🥉'][i] : '#' + (i + 1)}</div>
+      <div class="rank-num ${cls}">${i < 3 ? ['🥇', '🥈', '🥉'][i] : '#' + (i + 1)}</div>
       <div class="rank-pseudo">${r.pseudo}</div>
-      ${columns.map(c => `<div style="text-align:center">${r[c.key] ?? 0}</div>`).join('')}
-    </div>`).join('');
+      ${columns.map(c => `<div class="${cellClass(c.key)}" style="text-align:center">${r[c.key] ?? 0}</div>`).join('')}
+    </div>`;
+  }).join('');
   return `<div class="ranking-card" style="border:1px solid var(--gold);border-radius:12px;overflow:hidden">
     ${title ? `<div style="padding:10px 14px;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;background:var(--bg3);border-bottom:1px solid var(--border)">${title}</div>` : ''}
     <div class="rank-row header" style="grid-template-columns:${gridTemplate}"><div></div><div>Participant</div>${columns.map(c => `<div style="text-align:center">${c.label}</div>`).join('')}</div>
@@ -3138,7 +3143,7 @@ async function renderPublicResults() {
       <div id="public-tab-general">
         <div class="ranking-card" style="border:1px solid var(--gold);border-radius:12px;overflow:hidden;overflow-x:auto">
           <div class="rank-row header" style="grid-template-columns:${overallGrid};min-width:820px">
-            <div></div><div>Participant</div><div style="text-align:center">Points totaux</div><div style="text-align:center">Points Phase de Groupes</div><div style="text-align:center">Points Phase Finale</div><div style="text-align:center">Points Spéciaux</div><div style="text-align:center">Scores exacts</div><div></div><div></div>
+            <div></div><div>Participant</div><div style="text-align:center">Points totaux</div><div style="text-align:center">Pts Groupes</div><div style="text-align:center">Pts Finale</div><div style="text-align:center">Pts Spéciaux</div><div style="text-align:center">Scores exacts</div><div></div><div></div>
           </div>
           <div style="min-width:820px">${overallRows || '<div class="empty-state"><p>Aucun participant.</p></div>'}</div>
         </div>
@@ -3158,8 +3163,8 @@ async function renderPublicResults() {
       <div id="public-tab-speciaux" style="display:none">
         ${buildPublicRankingTable('', specialRanking, [
           { key: 'points', label: 'Points Totaux', width: '100px' },
-          { key: 'top4Pts', label: 'Points   Top 4', width: '100px' },
-          { key: 'goalsPts', label: 'Points   Buts', width: '100px' },
+          { key: 'top4Pts', label: 'Points Top 4', width: '100px' },
+          { key: 'goalsPts', label: 'Points Buts', width: '100px' },
           { key: 'winnerPts', label: 'Points Vainqueur', width: '110px' }
         ])}
       </div>
@@ -3261,7 +3266,7 @@ async function togglePublicEvolution(pseudo, eid) {
       el.innerHTML = '<p style="font-size:13px;color:var(--text2)">Chargement…</p>';
       try {
         const evolution = await getPlayerEvolution(pseudo);
-        el.innerHTML = `<div style="display:flex;justify-content:center;background:#fff;border-radius:8px;padding:8px">${buildEvolutionSVG(evolution, 480, 130)}</div>`;
+        el.innerHTML = `<div style="display:flex;justify-content:center;background:var(--bg3);border-radius:8px;padding:8px">${buildEvolutionSVG(evolution, 480, 130, '#FBBF24')}</div>`;
         el.dataset.loaded = '1';
       } catch (e) {
         el.innerHTML = '<p style="font-size:13px;color:var(--red)">Erreur de chargement de la courbe.</p>';
