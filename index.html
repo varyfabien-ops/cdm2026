@@ -605,6 +605,15 @@ const ADMIN_PSEUDO = 'Admin CSE';
 
 </div><!-- /#app -->
 
+<div id="public-page" style="display:none;max-width:1100px;margin:0 auto;padding:1.5rem 1rem 4rem">
+  <div style="text-align:center;margin-bottom:1.5rem">
+    <div class="hero-badge" style="display:inline-block">CSE Astrea Monts — Concours Officiel</div>
+    <h1 style="font-family:'Bebas Neue',sans-serif;font-size:2.4rem;letter-spacing:3px;margin:8px 0 4px">CLASSEMENT — COUPE DU MONDE <span style="color:var(--gold)">2026</span></h1>
+    <p style="color:var(--text2);font-size:15px">Résultats complets — accessible à tous, inscrits ou non</p>
+  </div>
+  <div id="public-content"><div class="empty-state"><p>Chargement…</p></div></div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -2729,13 +2738,274 @@ async function generateDiploma(pseudo, prenom, nom) {
     showToast('Erreur génération diplôme : ' + e.message, 'error');
   }
 }
+// ── Page publique de résultats ──────────────────────────────────────────────
+async function computeSpecialRanking() {
+  await loadResults();
+  const { data: players } = await sb.from('players').select('pseudo');
+  const { data: specialPronos } = await sb.from('pronos').select('pseudo,special').eq('match_id', 'special');
+  const scores = {};
+  (players || []).forEach(p => { scores[p.pseudo] = 0; });
+  (specialPronos || []).forEach(r => {
+    const special = r.special || {};
+    let pts = 0;
+    if (specialResults) {
+      if (special.winner && specialResults.winner === special.winner) pts += 20;
+      (special.top4 || []).forEach(t => { if ((specialResults.top4 || []).includes(t)) pts += 5; });
+      if (special.totalgoals !== undefined && special.totalgoals !== '' &&
+          specialResults.totalgoals !== undefined && specialResults.totalgoals !== '') {
+        if (Number(special.totalgoals) === Number(specialResults.totalgoals)) pts += 10;
+      }
+    }
+    scores[r.pseudo] = pts;
+  });
+  return Object.entries(scores)
+    .map(([pseudo, points]) => ({ pseudo, points }))
+    .sort((a, b) => b.points - a.points);
+}
+function buildPublicMiniTable(title, list) {
+  const rows = list.map((r, i) => `
+    <div class="rank-row" style="grid-template-columns:40px 1fr 70px">
+      <div class="rank-num">${i < 3 ? ['🥇', '🥈', '🥉'][i] : '#' + (i + 1)}</div>
+      <div class="rank-pseudo">${r.pseudo}</div>
+      <div class="rank-pts" style="text-align:center">${r.points}</div>
+    </div>`).join('');
+  return `<div class="ranking-card" style="border:1px solid var(--gold);border-radius:12px;overflow:hidden">
+    <div style="padding:10px 14px;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;background:var(--bg3);border-bottom:1px solid var(--border)">${title}</div>
+    <div style="max-height:360px;overflow-y:auto">
+      <div class="rank-row header" style="grid-template-columns:40px 1fr 70px"><div></div><div>Participant</div><div style="text-align:center">Pts</div></div>
+      ${rows || '<div class="empty-state"><p>Aucune donnée</p></div>'}
+    </div>
+  </div>`;
+}
+async function computeOnzeType() {
+  await loadResults();
+  const [{ data: players }, { data: allPronos }, { data: specialPronos }, orderMap, overall, phaseRankings, specialRanking, { data: allSnaps }] = await Promise.all([
+    sb.from('players').select('pseudo'),
+    sb.from('pronos').select('pseudo,match_id,home,away').neq('match_id', 'special').limit(20000),
+    sb.from('pronos').select('pseudo,special').eq('match_id', 'special'),
+    getResultsOrder(),
+    computeFullRankingForDiploma(),
+    computePhaseRankings(),
+    computeSpecialRanking(),
+    sb.from('ranking_snapshots').select('pseudo,position,match_number').order('match_number', { ascending: true })
+  ]);
+  const pronosByPseudo = {};
+  (allPronos || []).forEach(r => {
+    if (!pronosByPseudo[r.pseudo]) pronosByPseudo[r.pseudo] = [];
+    pronosByPseudo[r.pseudo].push(r);
+  });
+  const resultedMatches = ALL_MATCHES.filter(m => allResults[m.id]);
+  const orderedMatches = resultedMatches.filter(m => String(m.id) in orderMap)
+    .sort((a, b) => orderMap[String(a.id)] - orderMap[String(b.id)]);
+
+  // GK — Plus forte remontée lors de la phase finale (position fin de groupes → position finale)
+  let climb = [];
+  if (allSnaps && allSnaps.length) {
+    const groupSnaps = allSnaps.filter(s => s.match_number <= 72);
+    const lastGroupMatch = groupSnaps.length ? Math.max(...groupSnaps.map(s => s.match_number)) : 0;
+    const startPositions = {};
+    allSnaps.filter(s => s.match_number === lastGroupMatch).forEach(s => { startPositions[s.pseudo] = s.position; });
+    const lastMatch = Math.max(...allSnaps.map(s => s.match_number));
+    const currentPositions = {};
+    allSnaps.filter(s => s.match_number === lastMatch).forEach(s => { currentPositions[s.pseudo] = s.position; });
+    if (lastGroupMatch > 0 && lastMatch > lastGroupMatch) {
+      climb = Object.keys(currentPositions).map(pseudo => ({
+        pseudo, gain: startPositions[pseudo] !== undefined ? startPositions[pseudo] - currentPositions[pseudo] : -Infinity
+      })).sort((a, b) => b.gain - a.gain);
+    }
+  }
+
+  // Ailier gauche — Meilleure série de bons résultats consécutifs (tout le tournoi)
+  const streaks = (players || []).map(p => {
+    const predMap = {};
+    (pronosByPseudo[p.pseudo] || []).forEach(x => { predMap[String(x.match_id)] = x; });
+    let longest = 0, current = 0;
+    orderedMatches.forEach(m => {
+      const res = allResults[m.id];
+      const pr = predMap[String(m.id)];
+      if (!pr || pr.home === '' || pr.away === '' || pr.home == null || pr.away == null) { current = 0; return; }
+      const good = (Number(pr.home) === Number(res.home) && Number(pr.away) === Number(res.away)) ||
+        (Math.sign(pr.home - pr.away) === Math.sign(res.home - res.away));
+      if (good) { current++; longest = Math.max(longest, current); } else current = 0;
+    });
+    return { pseudo: p.pseudo, streak: longest };
+  }).sort((a, b) => b.streak - a.streak);
+
+  // Arrière gauche / droit — Le plus chanceux (bons résultats sans le score exact) / le plus malchanceux (à 1 but près d'avoir raison)
+  const luckStats = (players || []).map(p => {
+    const predMap = {};
+    (pronosByPseudo[p.pseudo] || []).forEach(x => { predMap[String(x.match_id)] = x; });
+    let total = 0, bon = 0, presque = 0;
+    resultedMatches.forEach(m => {
+      const res = allResults[m.id];
+      const pr = predMap[String(m.id)];
+      if (!pr || pr.home === '' || pr.away === '' || pr.home == null || pr.away == null) return;
+      total++;
+      const exact = Number(pr.home) === Number(res.home) && Number(pr.away) === Number(res.away);
+      const trendGood = Math.sign(pr.home - pr.away) === Math.sign(res.home - res.away);
+      if (trendGood && !exact) bon++;
+      if (!trendGood) {
+        const dist = Math.abs(Number(pr.home) - Number(res.home)) + Math.abs(Number(pr.away) - Number(res.away));
+        if (dist === 1) presque++;
+      }
+    });
+    return { pseudo: p.pseudo, total, luckRate: total ? bon / total : 0, unluckRate: total ? presque / total : 0 };
+  });
+  const chanceux = luckStats.filter(s => s.total >= 5).sort((a, b) => b.luckRate - a.luckRate);
+  const malchanceux = luckStats.filter(s => s.total >= 5).sort((a, b) => b.unluckRate - a.unluckRate);
+
+  // Milieu offensif — Le plus près du nombre de buts total du tournoi (pronostic spécial "buts exacts")
+  let closestGoals = [];
+  if (specialResults && specialResults.totalgoals !== undefined && specialResults.totalgoals !== '' && specialResults.totalgoals !== null) {
+    closestGoals = (specialPronos || [])
+      .filter(r => r.special && r.special.totalgoals !== undefined && r.special.totalgoals !== '' && r.special.totalgoals !== null)
+      .map(r => ({ pseudo: r.pseudo, diff: Math.abs(Number(r.special.totalgoals) - Number(specialResults.totalgoals)) }))
+      .sort((a, b) => a.diff - b.diff);
+  }
+
+  const used = new Set();
+  function pick(list, ok) {
+    for (const item of list) {
+      if (item.pseudo && !used.has(item.pseudo) && (!ok || ok(item))) { used.add(item.pseudo); return item.pseudo; }
+    }
+    return null;
+  }
+
+  // Ordre d'attribution : du plus déterminant au plus accessoire, pour éviter les doublons sur les meilleurs
+  const st = pick(overall);
+  const rw = pick(specialRanking, r => r.points > 0);
+  const cb1 = pick(phaseRankings.groupes);
+  const cb2 = pick(phaseRankings.finale);
+  const dm1 = pick(overall);
+  const dm2 = pick(overall);
+  const gk = pick(climb, r => r.gain > 0);
+  const lw = pick(streaks, r => r.streak > 0);
+  const cam = pick(closestGoals);
+  const lb = pick(chanceux);
+  const rb = pick(malchanceux);
+
+  // Ordre de retour = ordre d'affichage sur le terrain (attaque → gardien)
+  return [
+    { pos: 'ST', label: 'Vainqueur du concours', pseudo: st },
+    { pos: 'LW', label: 'Meilleure série de bons résultats', pseudo: lw },
+    { pos: 'CAM', label: 'Le plus près du nombre de buts total', pseudo: cam },
+    { pos: 'RW', label: 'Leader Pronostics spéciaux', pseudo: rw },
+    { pos: 'DM', label: '2e du concours', pseudo: dm1 },
+    { pos: 'DM', label: '3e du concours', pseudo: dm2 },
+    { pos: 'LB', label: 'Le plus chanceux', pseudo: lb },
+    { pos: 'CB', label: 'Meilleur Phase de groupes', pseudo: cb1 },
+    { pos: 'CB', label: 'Meilleur Phase finale', pseudo: cb2 },
+    { pos: 'RB', label: 'Le plus malchanceux', pseudo: rb },
+    { pos: 'GK', label: 'Plus forte remontée en phase finale', pseudo: gk },
+  ];
+}
+function buildOnzeTypeHTML(team) {
+  const chip = p => `<div style="background:rgba(255,255,255,0.95);border-radius:10px;padding:6px 10px;min-width:88px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.25)">
+      <div style="font-weight:700;color:#1f2937;font-size:13px;white-space:nowrap">${p.pseudo || '?'}</div>
+      <div style="font-size:10px;color:#5b6472;line-height:1.2;margin-top:2px">${p.label}</div>
+    </div>`;
+  const line = arr => `<div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap">${arr.map(chip).join('')}</div>`;
+  const byPos = {};
+  team.forEach(p => { (byPos[p.pos] = byPos[p.pos] || []).push(p); });
+  return `<div style="background:linear-gradient(180deg,#1b7a3d,#15602f);border-radius:16px;padding:24px 12px;position:relative;overflow:hidden;border:3px solid #fff">
+    <div style="position:absolute;inset:10px;border:2px solid rgba(255,255,255,0.4);border-radius:8px;pointer-events:none"></div>
+    <div style="position:absolute;top:50%;left:0;right:0;height:2px;background:rgba(255,255,255,0.4)"></div>
+    <div style="position:absolute;top:50%;left:50%;width:90px;height:90px;margin:-45px 0 0 -45px;border:2px solid rgba(255,255,255,0.4);border-radius:50%;pointer-events:none"></div>
+    <div style="position:relative;display:flex;flex-direction:column;gap:22px">
+      ${line(byPos.ST || [])}
+      ${line([...(byPos.LW || []), ...(byPos.CAM || []), ...(byPos.RW || [])])}
+      ${line(byPos.DM || [])}
+      ${line([...(byPos.LB || []), ...(byPos.CB || []), ...(byPos.RB || [])])}
+      ${line(byPos.GK || [])}
+    </div>
+  </div>`;
+}
+async function renderPublicResults() {
+  const container = document.getElementById('public-content');
+  container.innerHTML = '<div class="empty-state"><p>Chargement…</p></div>';
+  try {
+    const [overall, phaseRankings, specialRanking, onzeType] = await Promise.all([
+      computeFullRankingForDiploma(),
+      computePhaseRankings(),
+      computeSpecialRanking(),
+      computeOnzeType()
+    ]);
+    const overallRows = overall.map((r, i) => {
+      const medals = ['🥇', '🥈', '🥉'];
+      const cls = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+      const rid = 'pubmos-' + r.pseudo.replace(/[^a-z0-9]/gi, '_');
+      return `<div class="rank-row" style="grid-template-columns:40px 1fr 80px 110px 120px">
+          <div class="rank-num ${cls}">${medals[i] || ('#' + (i + 1))}</div>
+          <div class="rank-pseudo">${r.pseudo}</div>
+          <div class="rank-pts" style="text-align:center">${r.points}</div>
+          <div class="rank-exact" style="text-align:center">${r.exact}</div>
+          <div style="text-align:center"><button class="btn btn-outline btn-sm" style="font-size:12px;padding:4px 10px" onclick="togglePublicMosaic('${r.pseudo.replace(/'/g, "\\'")}','${rid}')">🎨 Mosaïque</button></div>
+        </div>
+        <div id="${rid}" style="display:none;padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border)"></div>`;
+    }).join('');
+    container.innerHTML = `
+      <div class="ranking-card" style="border:1px solid var(--gold);border-radius:12px;overflow:hidden">
+        <div class="rank-row header" style="grid-template-columns:40px 1fr 80px 110px 120px">
+          <div></div><div>Participant</div><div style="text-align:center">Points</div><div style="text-align:center">Scores exacts</div><div></div>
+        </div>
+        ${overallRows || '<div class="empty-state"><p>Aucun participant.</p></div>'}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin:24px 0 0">
+        ${buildPublicMiniTable('Phase de groupes', phaseRankings.groupes)}
+        ${buildPublicMiniTable('Phase finale', phaseRankings.finale)}
+        ${buildPublicMiniTable('Pronostics spéciaux', specialRanking)}
+      </div>
+      <div style="margin-top:32px">
+        <h2 style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;text-align:center;font-size:1.6rem;margin-bottom:14px">⚽ LE ONZE TYPE DU CONCOURS</h2>
+        ${buildOnzeTypeHTML(onzeType)}
+      </div>`;
+  } catch (e) {
+    console.error(e);
+    container.innerHTML = '<div class="empty-state"><p>Erreur de chargement. Réessaie plus tard.</p></div>';
+  }
+}
+async function togglePublicMosaic(pseudo, rid) {
+  const el = document.getElementById(rid);
+  if (!el) return;
+  if (el.style.display === 'none' || !el.style.display) {
+    el.style.display = 'block';
+    if (!el.dataset.loaded) {
+      el.innerHTML = '<p style="font-size:13px;color:var(--text2)">Chargement…</p>';
+      try {
+        const matches = await computeMatchGridData(pseudo);
+        el.innerHTML = `<div style="display:flex;justify-content:center">${buildMatchGridSVG(matches)}</div>
+          <div style="display:flex;gap:12px;justify-content:center;margin-top:8px;font-size:11px;color:var(--text2)">
+            <span><span style="display:inline-block;width:9px;height:9px;background:#16a34a;border-radius:2px;margin-right:3px"></span>Score exact</span>
+            <span><span style="display:inline-block;width:9px;height:9px;background:#FBBF24;border-radius:2px;margin-right:3px"></span>Bon résultat</span>
+            <span><span style="display:inline-block;width:9px;height:9px;background:#ef4444;border-radius:2px;margin-right:3px"></span>Faux</span>
+            <span><span style="display:inline-block;width:9px;height:9px;background:#e2e5ea;border-radius:2px;margin-right:3px"></span>Non joué</span>
+          </div>`;
+        el.dataset.loaded = '1';
+      } catch (e) {
+        el.innerHTML = '<p style="font-size:13px;color:var(--red)">Erreur de chargement de la mosaïque.</p>';
+      }
+    }
+  } else {
+    el.style.display = 'none';
+  }
+}
 // ── Init ───────────────────────────────────────────────────────────────────
 async function init() {
   initConfetti();
+  const isPublicPage = new URLSearchParams(location.search).has('resultats');
   if (!initSupabase()) {
     document.getElementById('auth-overlay').classList.add('hidden');
     document.getElementById('app').style.display='';
     showConfigWarning(); return;
+  }
+  if (isPublicPage) {
+    document.getElementById('auth-overlay').classList.add('hidden');
+    document.getElementById('app').style.display='none';
+    document.getElementById('public-page').style.display='';
+    await loadAppConfig();
+    await loadResults();
+    await renderPublicResults();
+    return;
   }
   await loadResults();
   // auto-login si session encore valide
