@@ -2606,26 +2606,6 @@ async function computePhaseRankings() {
   });
   result.finale = result.finale.map(r => ({ ...r, ...roundPtsMap[r.pseudo] }));
   result.koRounds = KO_ROUNDS;
-  // Détail des points de la phase de groupes, groupe par groupe
-  const GROUP_KEYS = Object.keys(GROUPS).map(g => ({ key: 'g' + g, phase: 'Groupe ' + g, label: g }));
-  const groupPtsMap = {};
-  (players || []).forEach(p => {
-    groupPtsMap[p.pseudo] = {};
-    GROUP_KEYS.forEach(gd => { groupPtsMap[p.pseudo][gd.key] = 0; });
-  });
-  GROUP_KEYS.forEach(gd => {
-    const groupMatches = ALL_MATCHES.filter(m => m.phase === gd.phase && allResults[m.id]);
-    groupMatches.forEach(m => {
-      const res = allResults[m.id];
-      (pronosByMatch[m.id] || []).forEach(p => {
-        if (!groupPtsMap[p.pseudo]) { groupPtsMap[p.pseudo] = {}; GROUP_KEYS.forEach(g2 => { groupPtsMap[p.pseudo][g2.key] = 0; }); }
-        if (Number(p.home) === Number(res.home) && Number(p.away) === Number(res.away)) groupPtsMap[p.pseudo][gd.key] += 3;
-        else if (Math.sign(p.home - p.away) === Math.sign(res.home - res.away)) groupPtsMap[p.pseudo][gd.key] += 1;
-      });
-    });
-  });
-  result.groupes = result.groupes.map(r => ({ ...r, ...groupPtsMap[r.pseudo] }));
-  result.groupKeys = GROUP_KEYS;
   return result;
 }
 async function computeMatchGridData(pseudo) {
@@ -2959,38 +2939,6 @@ function buildPublicRankingTable(title, list, columns) {
     </div>
   </div>`;
 }
-async function computeEfficiencyStats() {
-  await loadResults();
-  const { data: players } = await sb.from('players').select('pseudo');
-  const { data: allPronos } = await sb.from('pronos').select('pseudo,match_id,home,away').neq('match_id', 'special').limit(20000);
-  const pronosByPseudo = {};
-  (allPronos || []).forEach(r => {
-    if (!pronosByPseudo[r.pseudo]) pronosByPseudo[r.pseudo] = [];
-    pronosByPseudo[r.pseudo].push(r);
-  });
-  const resultedMatches = ALL_MATCHES.filter(m => allResults[m.id]);
-  const stats = (players || []).map(p => {
-    const predMap = {};
-    (pronosByPseudo[p.pseudo] || []).forEach(x => { predMap[String(x.match_id)] = x; });
-    let exact = 0, bon = 0, mauvais = 0, total = 0;
-    resultedMatches.forEach(m => {
-      const res = allResults[m.id];
-      const pr = predMap[String(m.id)];
-      if (!pr || pr.home === '' || pr.away === '' || pr.home == null || pr.away == null) return;
-      total++;
-      const isExact = Number(pr.home) === Number(res.home) && Number(pr.away) === Number(res.away);
-      const trendGood = Math.sign(pr.home - pr.away) === Math.sign(res.home - res.away);
-      if (isExact) exact++;
-      else if (trendGood) bon++;
-      else mauvais++;
-    });
-    const ratio = total ? (bon + exact) / total : 0;
-    return { pseudo: p.pseudo, exact, bon, mauvais, total, ratio, pct: (ratio * 100).toFixed(0) + '%' };
-  });
-  const desc = [...stats].filter(s => s.total > 0).sort((a, b) => b.ratio - a.ratio);
-  const asc = [...stats].filter(s => s.total > 0).sort((a, b) => a.ratio - b.ratio);
-  return { desc, asc };
-}
 async function computeOnzeType(precomputed) {
   await loadResults();
   precomputed = precomputed || {};
@@ -3262,14 +3210,13 @@ async function renderPublicResults() {
   const container = document.getElementById('public-content');
   container.innerHTML = '<div class="empty-state"><p>Chargement…</p></div>';
   try {
-    const [overallRaw, phaseRankingsRaw, specialRankingRaw, top3Data, { data: allPronosLight }, { data: specialPronosLight }, efficiencyStats] = await Promise.all([
+    const [overallRaw, phaseRankingsRaw, specialRankingRaw, top3Data, { data: allPronosLight }, { data: specialPronosLight }] = await Promise.all([
       computeFullRankingForDiploma(),
       computePhaseRankings(),
       computeSpecialRanking(),
       computeAllTop3Data(),
       sb.from('pronos').select('pseudo,match_id').neq('match_id', 'special').limit(20000),
-      sb.from('pronos').select('pseudo,special').eq('match_id', 'special'),
-      computeEfficiencyStats()
+      sb.from('pronos').select('pseudo,special').eq('match_id', 'special')
     ]);
     const onzeType = await computeOnzeType({
       overall: overallRaw, phaseRankings: phaseRankingsRaw, specialRanking: specialRankingRaw, top3: top3Data
@@ -3294,11 +3241,9 @@ async function renderPublicResults() {
     const phaseRankings = {
       groupes: phaseRankingsRaw.groupes.filter(r => participantsGroupes.has(r.pseudo)),
       finale: phaseRankingsRaw.finale.filter(r => participantsFinale.has(r.pseudo)),
-      groupKeys: phaseRankingsRaw.groupKeys,
       koRounds: phaseRankingsRaw.koRounds
     };
     const specialRanking = specialRankingRaw.filter(r => participantsSpecial.has(r.pseudo));
-    const efficaces = efficiencyStats.desc.filter(r => participantsAll.has(r.pseudo));
 
     // Cartes de correspondance pseudo -> points par catégorie, pour enrichir le classement général
     const groupPtsMap = {}; phaseRankingsRaw.groupes.forEach(r => { groupPtsMap[r.pseudo] = r.points; });
@@ -3333,7 +3278,6 @@ async function renderPublicResults() {
         <button onclick="switchPublicTab('groupes', this)">📋 Phase de groupes</button>
         <button onclick="switchPublicTab('finale', this)">🔥 Phase finale</button>
         <button onclick="switchPublicTab('speciaux', this)">🎯 Pronostics spéciaux</button>
-        <button onclick="switchPublicTab('chance', this)">🎯 Efficacité</button>
         <button onclick="switchPublicTab('top3', this)">🥇 Tous les Top 3</button>
         <button onclick="switchPublicTab('onze', this)">⚽ Onze Type</button>
       </div>
@@ -3347,9 +3291,8 @@ async function renderPublicResults() {
       </div>
       <div id="public-tab-groupes" style="display:none">
         ${buildPublicRankingTable('', phaseRankings.groupes, [
-          { key: 'points', label: 'Points Totaux', width: '110px' },
-          ...(phaseRankings.groupKeys || []).map(g => ({ key: g.key, label: g.label, width: '55px' })),
-          { key: 'exact', label: 'Scores Exacts', width: '110px' }
+          { key: 'points', label: 'Points Totaux', width: '120px' },
+          { key: 'exact', label: 'Scores Exacts', width: '120px' }
         ])}
       </div>
       <div id="public-tab-finale" style="display:none">
@@ -3369,17 +3312,6 @@ async function renderPublicResults() {
           { key: 'top4Pts', label: 'Points Top 4', width: '120px' },
           { key: 'goalsPts', label: 'Points Buts', width: '120px' },
           { key: 'winnerPts', label: 'Points Vainqueur', width: '120px' }
-        ])}
-      </div>
-      <div id="public-tab-chance" style="display:none">
-        <h3 style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:1.2rem;margin:0 0 8px">🎯 Le plus efficace</h3>
-        <p style="color:var(--text2);font-size:12px;margin:-4px 0 10px">(Bons résultats + Scores exacts) ÷ nombre de pronostics soumis sur les matchs déjà joués</p>
-        ${buildPublicRankingTable('', efficaces, [
-          { key: 'exact', label: 'Exacts', width: '85px' },
-          { key: 'bon', label: 'Bons', width: '85px' },
-          { key: 'mauvais', label: 'Mauvais', width: '85px' },
-          { key: 'total', label: 'Total pronos', width: '100px' },
-          { key: 'pct', label: 'Efficacité', width: '100px' }
         ])}
       </div>
       <div id="public-tab-top3" style="display:none">
