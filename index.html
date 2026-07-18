@@ -3001,7 +3001,6 @@ async function computeOnzeType(precomputed) {
       bestMatchCount: Math.max(...wins.map(w => w.matches))
     }))
     .sort((a, b) => b.wins.length - a.wins.length || b.bestMatchCount - a.bestMatchCount || a.pseudo.localeCompare(b.pseudo));
-  const goalkeeper = champions[0] || null;
   const pronosByPseudo = {};
   (allPronos || []).forEach(r => {
     if (!pronosByPseudo[r.pseudo]) pronosByPseudo[r.pseudo] = [];
@@ -3151,6 +3150,15 @@ async function computeOnzeType(precomputed) {
   const cam = pick(closestGoals, { eligibleOnly: true });
   const lb = pick(perfects, {});
   const rb = pick(climb, { eligibleOnly: true, ok: r => r.gain > 0 });
+  const gk = pick(champions, {});
+  const championByPseudo = {};
+  champions.forEach(c => { championByPseudo[c.pseudo] = c; });
+  const gkLabel = gk
+    ? (() => {
+        const c = championByPseudo[gk.pseudo];
+        return `Leader de ${c.wins.length} Top 3 (${c.wins.slice(0, 3).join(', ')}${c.wins.length > 3 ? ' et ' + (c.wins.length - 3) + ' autre(s)' : ''})`;
+      })()
+    : 'Aucun champion disponible pour l\'instant';
 
   // Ordre de retour = ordre d'affichage sur le terrain (attaque → gardien)
   const team = [
@@ -3164,7 +3172,7 @@ async function computeOnzeType(precomputed) {
     { pos: 'CB', label: cb1 ? (cb1.rank === 1 ? 'Meilleur Phase de groupes' : `${ord(cb1.rank)} Phase de groupes`) : 'Meilleur Phase de groupes', pseudo: cb1 && cb1.pseudo },
     { pos: 'CB', label: cb2 ? (cb2.rank === 1 ? 'Meilleur Phase finale' : `${ord(cb2.rank)} Phase finale`) : 'Meilleur Phase finale', pseudo: cb2 && cb2.pseudo },
     { pos: 'RB', label: 'Plus forte remontée en phase finale', pseudo: rb && rb.pseudo },
-    { pos: 'GK', label: goalkeeper ? `Leader de ${goalkeeper.wins.length} Top 3 (${goalkeeper.wins.slice(0, 3).join(', ')}${goalkeeper.wins.length > 3 ? ' et ' + (goalkeeper.wins.length - 3) + ' autre(s)' : ''})` : 'Aucun champion disponible pour l\'instant', pseudo: goalkeeper && goalkeeper.pseudo },
+    { pos: 'GK', label: gkLabel, pseudo: gk && gk.pseudo },
   ];
   return { team, champions };
 }
@@ -3198,10 +3206,10 @@ function printOnzeType() {
 }
 function buildOnzeTypeHTML(data) {
   const { team } = data;
-  const chip = p => `<div style="background:rgba(255,255,255,0.95);border-radius:10px;padding:10px 16px;width:auto;min-width:150px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.25)">
-      <div style="font-weight:700;color:#1f2937;font-size:15px;line-height:1.2;white-space:nowrap">${p.pseudo || '?'}</div>
+  const chip = p => `<div style="background:rgba(255,255,255,0.95);border-radius:12px;padding:14px 22px;width:auto;min-width:190px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.25)">
+      <div style="font-weight:700;color:#1f2937;font-size:18px;line-height:1.2;white-space:nowrap">${p.pseudo || '?'}</div>
     </div>`;
-  const line = arr => `<div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap">${arr.map(chip).join('')}</div>`;
+  const line = arr => `<div style="display:flex;justify-content:center;gap:14px;flex-wrap:wrap">${arr.map(chip).join('')}</div>`;
   const byPos = {};
   team.forEach(p => { (byPos[p.pos] = byPos[p.pos] || []).push(p); });
   const pitch = `<div style="background:linear-gradient(180deg,#1b7a3d,#15602f);border-radius:16px;padding:44px 12px;position:relative;overflow:hidden;border:3px solid #fff;min-height:760px;display:flex;flex-direction:column;justify-content:space-between">
