@@ -216,6 +216,10 @@ select.form-input{appearance:none;cursor:pointer}
   body.print-onze-only #public-tabs,
   body.print-onze-only #onze-print-btn { display: none !important; }
   body.print-onze-only #public-content > div:not(#public-tab-onze) { display: none !important; }
+  body.print-onze-only #public-tab-onze > *:not(#onze-pitch):not(h2) { display: none !important; }
+  body.print-onze-only #public-page-header .hero-badge,
+  body.print-onze-only #public-page-header p { display: none !important; }
+  body.print-onze-only #onze-pitch { margin: 0 auto !important; }
   body.print-ranking-only #auth-overlay,
   body.print-ranking-only #app,
   body.print-ranking-only .toast,
@@ -628,7 +632,7 @@ const ADMIN_PSEUDO = 'Admin CSE';
 </div><!-- /#app -->
 
 <div id="public-page" style="display:none;max-width:1100px;margin:0 auto;padding:1.5rem 1rem 4rem">
-  <div style="text-align:center;margin-bottom:1.5rem">
+  <div id="public-page-header" style="text-align:center;margin-bottom:1.5rem">
     <div class="hero-badge" style="display:inline-block">CSE Astrea Monts — Concours Officiel</div>
     <h1 style="font-family:'Bebas Neue',sans-serif;font-size:2.4rem;letter-spacing:3px;margin:8px 0 4px">CLASSEMENT — COUPE DU MONDE <span style="color:var(--gold)">2026</span></h1>
     <p style="color:var(--text2);font-size:15px">Résultats complets — accessible à tous, inscrits ou non</p>
@@ -3177,8 +3181,16 @@ const ONZE_POS_LABELS = {
   DM: 'MILIEU DÉFENSIF', LB: 'ARRIÈRE GAUCHE', CB: 'DÉFENSEUR CENTRAL', RB: 'ARRIÈRE', GK: 'GARDIEN DE BUT'
 };
 function printOnzeType() {
+  const pageStyle = document.createElement('style');
+  pageStyle.id = 'onze-print-page-style';
+  pageStyle.textContent = '@page { size: landscape; margin: 8mm; }';
+  document.head.appendChild(pageStyle);
   document.body.classList.add('print-onze-only');
-  const cleanup = () => document.body.classList.remove('print-onze-only');
+  const cleanup = () => {
+    document.body.classList.remove('print-onze-only');
+    const el = document.getElementById('onze-print-page-style');
+    if (el) el.remove();
+  };
   window.addEventListener('afterprint', cleanup, { once: true });
   window.print();
   setTimeout(cleanup, 1000);
@@ -3191,7 +3203,7 @@ function buildOnzeTypeHTML(data) {
   const line = arr => `<div style="display:flex;justify-content:center;gap:14px;flex-wrap:wrap">${arr.map(chip).join('')}</div>`;
   const byPos = {};
   team.forEach(p => { (byPos[p.pos] = byPos[p.pos] || []).push(p); });
-  const pitch = `<div style="background:linear-gradient(180deg,#1b7a3d,#15602f);border-radius:16px;padding:44px 12px;position:relative;overflow:hidden;border:3px solid #fff;min-height:760px;display:flex;flex-direction:column;justify-content:space-between">
+  const pitch = `<div id="onze-pitch" style="background:linear-gradient(180deg,#1b7a3d,#15602f);border-radius:16px;padding:44px 12px;position:relative;overflow:hidden;border:3px solid #fff;min-height:760px;display:flex;flex-direction:column;justify-content:space-between">
     <div style="position:absolute;inset:10px;border:2px solid rgba(255,255,255,0.4);border-radius:8px;pointer-events:none"></div>
     <div style="position:absolute;top:50%;left:0;right:0;height:2px;background:rgba(255,255,255,0.4)"></div>
     <div style="position:absolute;top:50%;left:50%;width:120px;height:120px;margin:-60px 0 0 -60px;border:2px solid rgba(255,255,255,0.4);border-radius:50%;pointer-events:none"></div>
