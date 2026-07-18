@@ -2606,6 +2606,26 @@ async function computePhaseRankings() {
   });
   result.finale = result.finale.map(r => ({ ...r, ...roundPtsMap[r.pseudo] }));
   result.koRounds = KO_ROUNDS;
+  // Détail des points de la phase de groupes, groupe par groupe
+  const GROUP_KEYS = Object.keys(GROUPS).map(g => ({ key: 'g' + g, phase: 'Groupe ' + g, label: g }));
+  const groupPtsMap = {};
+  (players || []).forEach(p => {
+    groupPtsMap[p.pseudo] = {};
+    GROUP_KEYS.forEach(gd => { groupPtsMap[p.pseudo][gd.key] = 0; });
+  });
+  GROUP_KEYS.forEach(gd => {
+    const groupMatches = ALL_MATCHES.filter(m => m.phase === gd.phase && allResults[m.id]);
+    groupMatches.forEach(m => {
+      const res = allResults[m.id];
+      (pronosByMatch[m.id] || []).forEach(p => {
+        if (!groupPtsMap[p.pseudo]) { groupPtsMap[p.pseudo] = {}; GROUP_KEYS.forEach(g2 => { groupPtsMap[p.pseudo][g2.key] = 0; }); }
+        if (Number(p.home) === Number(res.home) && Number(p.away) === Number(res.away)) groupPtsMap[p.pseudo][gd.key] += 3;
+        else if (Math.sign(p.home - p.away) === Math.sign(res.home - res.away)) groupPtsMap[p.pseudo][gd.key] += 1;
+      });
+    });
+  });
+  result.groupes = result.groupes.map(r => ({ ...r, ...groupPtsMap[r.pseudo] }));
+  result.groupKeys = GROUP_KEYS;
   return result;
 }
 async function computeMatchGridData(pseudo) {
@@ -2838,9 +2858,9 @@ async function computeAllTop3Data() {
 async function computeSpecialRanking() {
   await loadResults();
   const { data: players } = await sb.from('players').select('pseudo');
-  const { data: specialPronos } = await sb.from('pronos').select('pseudo,special').eq('match_id', 'special');
+  const { data: specialPronos } = await sb.from('pronos').select('pseudo,special,created_at').eq('match_id', 'special');
   const stats = {};
-  (players || []).forEach(p => { stats[p.pseudo] = { points: 0, winnerPts: 0, top4Pts: 0, goalsPts: 0 }; });
+  (players || []).forEach(p => { stats[p.pseudo] = { points: 0, winnerPts: 0, top4Pts: 0, goalsPts: 0, createdAt: null }; });
   (specialPronos || []).forEach(r => {
     const special = r.special || {};
     let winnerPts = 0, top4Pts = 0, goalsPts = 0;
@@ -2852,11 +2872,11 @@ async function computeSpecialRanking() {
         if (Number(special.totalgoals) === Number(specialResults.totalgoals)) goalsPts = 10;
       }
     }
-    stats[r.pseudo] = { points: winnerPts + top4Pts + goalsPts, winnerPts, top4Pts, goalsPts };
+    stats[r.pseudo] = { points: winnerPts + top4Pts + goalsPts, winnerPts, top4Pts, goalsPts, createdAt: r.created_at };
   });
   return Object.entries(stats)
     .map(([pseudo, s]) => ({ pseudo, ...s }))
-    .sort((a, b) => b.points - a.points);
+    .sort((a, b) => b.points - a.points || new Date(a.createdAt || '9999-12-31') - new Date(b.createdAt || '9999-12-31'));
 }
 let top3DataCache = null;
 function buildTop3Card(name, ranking, icon) {
@@ -3273,7 +3293,9 @@ async function renderPublicResults() {
     const overall = overallRaw.filter(r => participantsAll.has(r.pseudo));
     const phaseRankings = {
       groupes: phaseRankingsRaw.groupes.filter(r => participantsGroupes.has(r.pseudo)),
-      finale: phaseRankingsRaw.finale.filter(r => participantsFinale.has(r.pseudo))
+      finale: phaseRankingsRaw.finale.filter(r => participantsFinale.has(r.pseudo)),
+      groupKeys: phaseRankingsRaw.groupKeys,
+      koRounds: phaseRankingsRaw.koRounds
     };
     const specialRanking = specialRankingRaw.filter(r => participantsSpecial.has(r.pseudo));
     const efficaces = efficiencyStats.desc.filter(r => participantsAll.has(r.pseudo));
@@ -3325,8 +3347,9 @@ async function renderPublicResults() {
       </div>
       <div id="public-tab-groupes" style="display:none">
         ${buildPublicRankingTable('', phaseRankings.groupes, [
-          { key: 'points', label: 'Points Totaux', width: '120px' },
-          { key: 'exact', label: 'Scores Exacts', width: '120px' }
+          { key: 'points', label: 'Points Totaux', width: '110px' },
+          ...(phaseRankings.groupKeys || []).map(g => ({ key: g.key, label: g.label, width: '55px' })),
+          { key: 'exact', label: 'Scores Exacts', width: '110px' }
         ])}
       </div>
       <div id="public-tab-finale" style="display:none">
