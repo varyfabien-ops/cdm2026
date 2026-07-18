@@ -3525,7 +3525,7 @@ async function loadSondageResults() {
   const container = document.getElementById('sondage-results');
   container.innerHTML = '<div class="empty-state"><p>Chargement…</p></div>';
   try {
-    const { data, error } = await sb.from('feedback').select('id,pseudo,rating,comment,next_competitions,created_at').order('created_at', { ascending: false });
+    const { data, error } = await sb.from('feedback').select('id,rating,comment,next_competitions,created_at').order('created_at', { ascending: false });
     if (error) throw error;
     const rows = data || [];
     const rated = rows.filter(r => r.rating);
