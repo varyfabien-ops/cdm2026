@@ -3171,7 +3171,7 @@ async function computeOnzeType(precomputed) {
     { pos: 'LB', label: lb ? `Perfect sur ${perfectInfoMap[lb.pseudo].catName} (${perfectInfoMap[lb.pseudo].total}/${perfectInfoMap[lb.pseudo].total})` : 'Perfect sur un tour, un groupe ou une équipe', fun: 'Monsieur Perfect version défense', pseudo: lb && lb.pseudo },
     { pos: 'CB', label: cb1 ? (cb1.rank === 1 ? 'Meilleur Phase de groupes' : `${ord(cb1.rank)} Phase de groupes`) : 'Meilleur Phase de groupes', fun: 'Le roc de la phase de groupes', pseudo: cb1 && cb1.pseudo },
     { pos: 'CB', label: cb2 ? (cb2.rank === 1 ? 'Meilleur Phase finale' : `${ord(cb2.rank)} Phase finale`) : 'Meilleur Phase finale', fun: 'Le mur des grands soirs', pseudo: cb2 && cb2.pseudo },
-    { pos: 'RB', label: 'Plus forte remontée en phase finale', fun: 'La fusée de fin de tournoi', pseudo: rb && rb.pseudo },
+    { pos: 'RB', label: 'Plus forte remontée en phase finale', fun: 'Toujours disponible pour offrir une solution, jamais débordé par les adversaires', pseudo: rb && rb.pseudo },
     { pos: 'GK', label: gkLabel, fun: 'Le dernier rempart multi-champion', pseudo: gk && gk.pseudo },
   ];
   return { team, champions };
