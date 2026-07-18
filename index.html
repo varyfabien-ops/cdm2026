@@ -3307,13 +3307,16 @@ async function renderPublicResults() {
     container.innerHTML = `
       <div class="tab-sub" id="public-tabs" style="justify-content:center">
         <button class="active" onclick="switchPublicTab('general', this)">🏆 Classement général</button>
+        <button id="annexes-toggle-btn" onclick="toggleAnnexesMenu(this)">📂 Classements Annexes</button>
+        <button onclick="switchPublicTab('onze', this)">⚽ Onze Type</button>
+        <button onclick="switchPublicTab('impression', this)">🖨️ Impression</button>
+        <button onclick="switchPublicTab('sondage', this)">📝 Sondage</button>
+      </div>
+      <div class="tab-sub" id="annexes-submenu" style="justify-content:center;display:none;margin-top:-6px">
         <button onclick="switchPublicTab('groupes', this)">📋 Phase de groupes</button>
         <button onclick="switchPublicTab('finale', this)">🔥 Phase finale</button>
         <button onclick="switchPublicTab('speciaux', this)">🎯 Pronostics spéciaux</button>
         <button onclick="switchPublicTab('top3', this)">🥇 Tous les Top 3</button>
-        <button onclick="switchPublicTab('onze', this)">⚽ Onze Type</button>
-        <button onclick="switchPublicTab('impression', this)">🖨️ Impression</button>
-        <button onclick="switchPublicTab('sondage', this)">📝 Sondage</button>
       </div>
       <div id="public-tab-general">
         <div class="ranking-card" style="border:1px solid var(--gold);border-radius:12px;overflow:hidden;overflow-x:auto">
@@ -3414,15 +3417,28 @@ async function renderPublicResults() {
     container.innerHTML = '<div class="empty-state"><p>Erreur de chargement. Réessaie plus tard.</p></div>';
   }
 }
+const ANNEXES_TABS = ['groupes', 'finale', 'speciaux', 'top3'];
 function switchPublicTab(tab, btn) {
   ['general', 'groupes', 'finale', 'speciaux', 'top3', 'impression', 'sondage', 'onze'].forEach(t => {
     const el = document.getElementById('public-tab-' + t);
     if (el) el.style.display = (t === tab) ? '' : 'none';
   });
-  document.querySelectorAll('#public-tabs button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#public-tabs button, #annexes-submenu button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+  const annexesBtn = document.getElementById('annexes-toggle-btn');
+  if (ANNEXES_TABS.includes(tab)) {
+    annexesBtn.classList.add('active');
+    document.getElementById('annexes-submenu').style.display = 'flex';
+  } else {
+    annexesBtn.classList.remove('active');
+  }
   if (tab === 'top3') renderPublicTop3();
   if (tab === 'impression') initPrintPeoplePicker();
+}
+function toggleAnnexesMenu(btn) {
+  const submenu = document.getElementById('annexes-submenu');
+  const isOpen = submenu.style.display !== 'none';
+  submenu.style.display = isOpen ? 'none' : 'flex';
 }
 function initPrintPeoplePicker() {
   const picker = document.getElementById('print-people-picker');
