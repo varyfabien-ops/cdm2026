@@ -2847,7 +2847,7 @@ function buildTop3Card(name, ranking, icon) {
   const podium = ranking.slice(0, 3).map((r, i) => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;${i < 2 ? 'border-bottom:1px solid var(--border)' : ''}">
       <span style="font-size:13px;color:var(--text2)">${medals[i]} ${r.pseudo}</span>
-      <span style="text-align:right"><span class="rank-pts" style="font-size:15px">${r.points}</span><span class="rank-exact" style="font-size:11px;margin-left:4px">(${r.exact} ex.)</span></span>
+      <span class="rank-pts" style="font-size:15px">${r.points}</span>
     </div>`).join('');
   const safeId = (name).replace(/[^a-z0-9]/gi, '_');
   return `<div class="form-card" style="margin-bottom:0">
@@ -2864,7 +2864,7 @@ function showTop3Popup(title, safeId) {
   const rows = entry.ranking.map((r, i) => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border)">
       <span style="font-size:14px;color:var(--text)">${i < 3 ? ['🥇', '🥈', '🥉'][i] : '#' + (i + 1)} ${r.pseudo}</span>
-      <span><span class="rank-pts">${r.points}</span><span class="rank-exact" style="font-size:12px;margin-left:6px">(${r.exact} exact${r.exact > 1 ? 's' : ''})</span></span>
+      <span><span class="rank-pts">${r.points}</span> <span class="rank-exact" style="font-size:12px">(${r.exact})</span></span>
     </div>`).join('');
   const modal = document.createElement('div');
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
@@ -3021,25 +3021,55 @@ async function computeOnzeType() {
     return { pseudo: p.pseudo, streak: longest };
   }).sort((a, b) => b.streak - a.streak);
 
-  // Arrière gauche — Le meilleur sur les matchs de l'équipe de France
+  // Arrière gauche — Le "Perfect" : score exact sur TOUS les matchs d'un tour, d'un groupe ou d'une équipe
   const normTeam = s => (s || '').toString().trim().toLowerCase();
-  const franceMatches = ALL_MATCHES.filter(m => (normTeam(m.home).includes('france') || normTeam(m.away).includes('france')) && allResults[m.id]);
-  const francePtsMap = {};
-  const franceRanking = (players || []).map(p => {
-    const predMap = {};
-    (pronosByPseudo[p.pseudo] || []).forEach(x => { predMap[String(x.match_id)] = x; });
-    let points = 0;
-    franceMatches.forEach(m => {
-      const res = allResults[m.id];
-      const pr = predMap[String(m.id)];
-      if (!pr || pr.home === '' || pr.away === '' || pr.home == null || pr.away == null) return;
-      const mult = PHASE_MULT[m.phase] || 1;
-      if (Number(pr.home) === Number(res.home) && Number(pr.away) === Number(res.away)) points += 3 * mult;
-      else if (Math.sign(pr.home - pr.away) === Math.sign(res.home - res.away)) points += 1 * mult;
+  const predsByMatchId = {};
+  Object.entries(pronosByPseudo).forEach(([pseudo, arr]) => {
+    (arr || []).forEach(x => {
+      const key = String(x.match_id);
+      if (!predsByMatchId[key]) predsByMatchId[key] = [];
+      predsByMatchId[key].push({ pseudo, home: x.home, away: x.away });
     });
-    francePtsMap[p.pseudo] = points;
-    return { pseudo: p.pseudo, points };
-  }).sort((a, b) => b.points - a.points);
+  });
+  const PERFECT_ROUND_LABELS = ['Seizièmes', 'Huitièmes', 'Quarts', 'Demi-finales', 'FINALES'];
+  const perfectCats = {};
+  const ensureCat = name => { if (!perfectCats[name]) perfectCats[name] = { total: 0, exact: {}, predicted: {} }; return perfectCats[name]; };
+  resultedMatches.forEach(m => {
+    const res = allResults[m.id];
+    const isGroupM = m.phase.startsWith('Groupe');
+    const roundLabel = isGroupM ? null : (m.phase === 'Petite finale' || m.phase === 'Finale') ? 'FINALES' : m.phase;
+    const homeTeam = TEAMS.find(t => normTeam(t) === normTeam(m.home));
+    const awayTeam = TEAMS.find(t => normTeam(t) === normTeam(m.away));
+    const cats = [];
+    if (isGroupM) cats.push(m.phase);
+    if (roundLabel) cats.push(roundLabel);
+    if (homeTeam) cats.push(homeTeam);
+    if (awayTeam) cats.push(awayTeam);
+    cats.forEach(catName => { ensureCat(catName).total++; });
+    (predsByMatchId[String(m.id)] || []).forEach(pr => {
+      if (pr.home === '' || pr.away === '' || pr.home == null || pr.away == null) return;
+      const isExact = Number(pr.home) === Number(res.home) && Number(pr.away) === Number(res.away);
+      cats.forEach(catName => {
+        const cat = ensureCat(catName);
+        cat.predicted[pr.pseudo] = (cat.predicted[pr.pseudo] || 0) + 1;
+        if (isExact) cat.exact[pr.pseudo] = (cat.exact[pr.pseudo] || 0) + 1;
+      });
+    });
+  });
+  const bestPerfectByPseudo = {};
+  Object.entries(perfectCats).forEach(([catName, cat]) => {
+    if (cat.total < 2) return;
+    Object.keys(cat.exact).forEach(pseudo => {
+      if (cat.exact[pseudo] === cat.total && cat.predicted[pseudo] === cat.total) {
+        if (!bestPerfectByPseudo[pseudo] || cat.total > bestPerfectByPseudo[pseudo].total) {
+          bestPerfectByPseudo[pseudo] = { pseudo, catName, total: cat.total };
+        }
+      }
+    });
+  });
+  const perfects = Object.values(bestPerfectByPseudo).sort((a, b) => b.total - a.total || a.pseudo.localeCompare(b.pseudo));
+  const perfectInfoMap = {};
+  perfects.forEach(p => { perfectInfoMap[p.pseudo] = p; });
 
   // Arrière droit — Le plus efficace : meilleur ratio (bons résultats + scores exacts) / pronostics soumis
   const efficiencyStats = (players || []).map(p => {
@@ -3099,7 +3129,7 @@ async function computeOnzeType() {
   const gk = pick(climb, { eligibleOnly: true, ok: r => r.gain > 0 });
   const lw = pick(streaks, { eligibleOnly: true, ok: r => r.streak > 0 });
   const cam = pick(closestGoals, { eligibleOnly: true });
-  const lb = pick(franceRanking, { ok: r => r.points > 0 });
+  const lb = pick(perfects, {});
   const rb = pick(efficaces, { eligibleOnly: true });
 
   // Ordre de retour = ordre d'affichage sur le terrain (attaque → gardien)
@@ -3110,7 +3140,7 @@ async function computeOnzeType() {
     { pos: 'RW', label: rw ? (rw.rank === 1 ? 'Leader Pronostics spéciaux' : `${ord(rw.rank)} Pronostics spéciaux`) : 'Leader Pronostics spéciaux', pseudo: rw && rw.pseudo },
     { pos: 'DM', label: dm1 ? `${ord(dm1.rank)} du concours` : '2e du concours', pseudo: dm1 && dm1.pseudo },
     { pos: 'DM', label: dm2 ? `${ord(dm2.rank)} du concours` : '3e du concours', pseudo: dm2 && dm2.pseudo },
-    { pos: 'LB', label: lb ? (lb.rank === 1 ? `Meilleur sur les matchs de la France (${francePtsMap[lb.pseudo]} pts)` : `${ord(lb.rank)} sur les matchs de la France (${francePtsMap[lb.pseudo]} pts)`) : 'Meilleur sur les matchs de la France', pseudo: lb && lb.pseudo },
+    { pos: 'LB', label: lb ? `Perfect sur ${perfectInfoMap[lb.pseudo].catName} (${perfectInfoMap[lb.pseudo].total}/${perfectInfoMap[lb.pseudo].total})` : 'Perfect sur un tour, un groupe ou une équipe', pseudo: lb && lb.pseudo },
     { pos: 'CB', label: cb1 ? (cb1.rank === 1 ? 'Meilleur Phase de groupes' : `${ord(cb1.rank)} Phase de groupes`) : 'Meilleur Phase de groupes', pseudo: cb1 && cb1.pseudo },
     { pos: 'CB', label: cb2 ? (cb2.rank === 1 ? 'Meilleur Phase finale' : `${ord(cb2.rank)} Phase finale`) : 'Meilleur Phase finale', pseudo: cb2 && cb2.pseudo },
     { pos: 'RB', label: 'Le plus efficace', pseudo: rb && rb.pseudo },
