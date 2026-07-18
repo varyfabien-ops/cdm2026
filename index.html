@@ -3431,6 +3431,7 @@ function switchPublicTab(tab, btn) {
     document.getElementById('annexes-submenu').style.display = 'flex';
   } else {
     annexesBtn.classList.remove('active');
+    document.getElementById('annexes-submenu').style.display = 'none';
   }
   if (tab === 'top3') renderPublicTop3();
   if (tab === 'impression') initPrintPeoplePicker();
@@ -3439,6 +3440,12 @@ function toggleAnnexesMenu(btn) {
   const submenu = document.getElementById('annexes-submenu');
   const isOpen = submenu.style.display !== 'none';
   submenu.style.display = isOpen ? 'none' : 'flex';
+  if (!isOpen) {
+    document.querySelectorAll('#public-tabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  } else {
+    btn.classList.remove('active');
+  }
 }
 function initPrintPeoplePicker() {
   const picker = document.getElementById('print-people-picker');
