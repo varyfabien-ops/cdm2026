@@ -2781,11 +2781,11 @@ async function generateDiploma(pseudo, prenom, nom) {
 // ── Page publique de résultats ──────────────────────────────────────────────
 async function computeAllTop3Data() {
   await loadResults();
-  const { data: allPronos } = await sb.from('pronos').select('pseudo,match_id,home,away').neq('match_id', 'special').limit(20000);
+  const { data: allPronos } = await sb.from('pronos').select('pseudo,match_id,home,away,created_at').neq('match_id', 'special').limit(20000);
   const pronosByMatch = {};
   (allPronos || []).forEach(r => {
     if (!pronosByMatch[r.match_id]) pronosByMatch[r.match_id] = [];
-    pronosByMatch[r.match_id].push({ pseudo: r.pseudo, home: r.home, away: r.away });
+    pronosByMatch[r.match_id].push({ pseudo: r.pseudo, home: r.home, away: r.away, created_at: r.created_at });
   });
   const normTeam = s => (s || '').toString().trim().toLowerCase();
 
@@ -2794,10 +2794,11 @@ async function computeAllTop3Data() {
   const ROUND_LABELS = ['Seizièmes', 'Huitièmes', 'Quarts', 'Demi-finales', 'FINALES'];
   const byRound = {}; ROUND_LABELS.forEach(r => { byRound[r] = {}; });
   const matchCount = {};
-  const credit = (bucket, pseudo, pts, isExact) => {
-    if (!bucket[pseudo]) bucket[pseudo] = { points: 0, exact: 0 };
+  const credit = (bucket, pseudo, pts, isExact, createdAt) => {
+    if (!bucket[pseudo]) bucket[pseudo] = { points: 0, exact: 0, firstAt: null };
     bucket[pseudo].points += pts;
     if (isExact) bucket[pseudo].exact += 1;
+    if (createdAt && (!bucket[pseudo].firstAt || createdAt < bucket[pseudo].firstAt)) bucket[pseudo].firstAt = createdAt;
   };
 
   const matchesWithResult = ALL_MATCHES.filter(m => allResults[m.id]);
@@ -2817,16 +2818,16 @@ async function computeAllTop3Data() {
       let pts = 0, isExact = false;
       if (Number(p.home) === Number(res.home) && Number(p.away) === Number(res.away)) { pts = 3 * mult; isExact = true; }
       else if (Math.sign(p.home - p.away) === Math.sign(res.home - res.away)) pts = 1 * mult;
-      if (homeTeam) credit(byTeam[homeTeam], p.pseudo, pts, isExact);
-      if (awayTeam) credit(byTeam[awayTeam], p.pseudo, pts, isExact);
-      if (isGroup && byGroup[m.phase]) credit(byGroup[m.phase], p.pseudo, pts, isExact);
-      if (roundLabel && byRound[roundLabel]) credit(byRound[roundLabel], p.pseudo, pts, isExact);
+      if (homeTeam) credit(byTeam[homeTeam], p.pseudo, pts, isExact, p.created_at);
+      if (awayTeam) credit(byTeam[awayTeam], p.pseudo, pts, isExact, p.created_at);
+      if (isGroup && byGroup[m.phase]) credit(byGroup[m.phase], p.pseudo, pts, isExact, p.created_at);
+      if (roundLabel && byRound[roundLabel]) credit(byRound[roundLabel], p.pseudo, pts, isExact, p.created_at);
     });
   });
 
   const toSortedList = obj => Object.entries(obj)
-    .map(([pseudo, s]) => ({ pseudo, points: s.points, exact: s.exact }))
-    .sort((a, b) => b.points - a.points || b.exact - a.exact);
+    .map(([pseudo, s]) => ({ pseudo, points: s.points, exact: s.exact, firstAt: s.firstAt }))
+    .sort((a, b) => b.points - a.points || b.exact - a.exact || new Date(a.firstAt || '9999-12-31') - new Date(b.firstAt || '9999-12-31'));
 
   const teams = TEAMS.map(t => ({ name: t, ranking: toSortedList(byTeam[t]), matches: matchCount[t] || 0 })).filter(t => t.ranking.length);
   const groups = Object.keys(GROUPS).map(g => ({ name: 'Groupe ' + g, ranking: toSortedList(byGroup['Groupe ' + g]), matches: matchCount['Groupe ' + g] || 0 })).filter(g => g.ranking.length);
