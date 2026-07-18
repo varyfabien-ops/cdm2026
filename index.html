@@ -2567,6 +2567,34 @@ async function computePhaseRankings() {
       .map(([pseudo, points]) => ({ pseudo, points, exact: exactScores[pseudo] || 0 }))
       .sort((a, b) => b.points - a.points || b.exact - a.exact);
   });
+  // Détail des points de la phase finale, tour par tour
+  const KO_ROUNDS = [
+    { key: 'r16', phase: 'Seizièmes', label: '1/16' },
+    { key: 'r8', phase: 'Huitièmes', label: '1/8' },
+    { key: 'r4', phase: 'Quarts', label: '1/4' },
+    { key: 'r2', phase: 'Demi-finales', label: '1/2' },
+    { key: 'petite', phase: 'Petite finale', label: 'Petite finale' },
+    { key: 'finaleMatch', phase: 'Finale', label: 'Finale' }
+  ];
+  const roundPtsMap = {};
+  (players || []).forEach(p => {
+    roundPtsMap[p.pseudo] = {};
+    KO_ROUNDS.forEach(rd => { roundPtsMap[p.pseudo][rd.key] = 0; });
+  });
+  KO_ROUNDS.forEach(rd => {
+    const roundMatches = ALL_MATCHES.filter(m => m.phase === rd.phase && allResults[m.id]);
+    const mult = PHASE_MULT[rd.phase] || 1;
+    roundMatches.forEach(m => {
+      const res = allResults[m.id];
+      (pronosByMatch[m.id] || []).forEach(p => {
+        if (!roundPtsMap[p.pseudo]) { roundPtsMap[p.pseudo] = {}; KO_ROUNDS.forEach(r2 => { roundPtsMap[p.pseudo][r2.key] = 0; }); }
+        if (Number(p.home) === Number(res.home) && Number(p.away) === Number(res.away)) roundPtsMap[p.pseudo][rd.key] += 3 * mult;
+        else if (Math.sign(p.home - p.away) === Math.sign(res.home - res.away)) roundPtsMap[p.pseudo][rd.key] += 1 * mult;
+      });
+    });
+  });
+  result.finale = result.finale.map(r => ({ ...r, ...roundPtsMap[r.pseudo] }));
+  result.koRounds = KO_ROUNDS;
   return result;
 }
 async function computeMatchGridData(pseudo) {
@@ -2740,6 +2768,50 @@ async function generateDiploma(pseudo, prenom, nom) {
   }
 }
 // ── Page publique de résultats ──────────────────────────────────────────────
+async function computeAllTop3Data() {
+  await loadResults();
+  const { data: allPronos } = await sb.from('pronos').select('pseudo,match_id,home,away').neq('match_id', 'special').limit(20000);
+  const pronosByMatch = {};
+  (allPronos || []).forEach(r => {
+    if (!pronosByMatch[r.match_id]) pronosByMatch[r.match_id] = [];
+    pronosByMatch[r.match_id].push({ pseudo: r.pseudo, home: r.home, away: r.away });
+  });
+  const normTeam = s => (s || '').toString().trim().toLowerCase();
+
+  const byTeam = {}; TEAMS.forEach(t => { byTeam[t] = {}; });
+  const byGroup = {}; Object.keys(GROUPS).forEach(g => { byGroup['Groupe ' + g] = {}; });
+  const ROUND_LABELS = ['Seizièmes', 'Huitièmes', 'Quarts', 'Demi-finales', 'FINALES'];
+  const byRound = {}; ROUND_LABELS.forEach(r => { byRound[r] = {}; });
+
+  const matchesWithResult = ALL_MATCHES.filter(m => allResults[m.id]);
+  matchesWithResult.forEach(m => {
+    const res = allResults[m.id];
+    const mult = PHASE_MULT[m.phase] || 1;
+    const isGroup = m.phase.startsWith('Groupe');
+    const roundLabel = isGroup ? null : (m.phase === 'Petite finale' || m.phase === 'Finale') ? 'FINALES' : m.phase;
+    const homeTeam = TEAMS.find(t => normTeam(t) === normTeam(m.home));
+    const awayTeam = TEAMS.find(t => normTeam(t) === normTeam(m.away));
+    (pronosByMatch[m.id] || []).forEach(p => {
+      if (p.home === '' || p.away === '' || p.home == null || p.away == null) return;
+      let pts = 0;
+      if (Number(p.home) === Number(res.home) && Number(p.away) === Number(res.away)) pts = 3 * mult;
+      else if (Math.sign(p.home - p.away) === Math.sign(res.home - res.away)) pts = 1 * mult;
+      if (pts === 0) return;
+      if (homeTeam) byTeam[homeTeam][p.pseudo] = (byTeam[homeTeam][p.pseudo] || 0) + pts;
+      if (awayTeam) byTeam[awayTeam][p.pseudo] = (byTeam[awayTeam][p.pseudo] || 0) + pts;
+      if (isGroup && byGroup[m.phase]) byGroup[m.phase][p.pseudo] = (byGroup[m.phase][p.pseudo] || 0) + pts;
+      if (byRound[roundLabel]) byRound[roundLabel][p.pseudo] = (byRound[roundLabel][p.pseudo] || 0) + pts;
+    });
+  });
+
+  const toSortedList = obj => Object.entries(obj).map(([pseudo, points]) => ({ pseudo, points })).sort((a, b) => b.points - a.points);
+
+  const teams = TEAMS.map(t => ({ name: t, ranking: toSortedList(byTeam[t]) })).filter(t => t.ranking.length);
+  const groups = Object.keys(GROUPS).map(g => ({ name: 'Groupe ' + g, ranking: toSortedList(byGroup['Groupe ' + g]) })).filter(g => g.ranking.length);
+  const rounds = ROUND_LABELS.map(r => ({ name: r, ranking: toSortedList(byRound[r]) })).filter(r => r.ranking.length);
+
+  return { teams, groups, rounds };
+}
 async function computeTeamRanking(teamName) {
   await loadResults();
   const { data: players } = await sb.from('players').select('pseudo');
@@ -2792,10 +2864,63 @@ async function computeSpecialRanking() {
     .map(([pseudo, s]) => ({ pseudo, ...s }))
     .sort((a, b) => b.points - a.points);
 }
+let top3DataCache = null;
+function buildTop3Card(name, ranking, icon) {
+  const medals = ['🥇', '🥈', '🥉'];
+  const podium = ranking.slice(0, 3).map((r, i) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;${i < 2 ? 'border-bottom:1px solid var(--border)' : ''}">
+      <span style="font-size:13px;color:var(--text2)">${medals[i]} ${r.pseudo}</span>
+      <span class="rank-pts" style="font-size:15px">${r.points}</span>
+    </div>`).join('');
+  const safeId = (name).replace(/[^a-z0-9]/gi, '_');
+  return `<div class="form-card" style="margin-bottom:0">
+    <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:1rem;margin-bottom:8px;color:var(--gold)">${icon ? icon + ' ' : ''}${name}</div>
+    ${podium || '<p style="font-size:13px;color:var(--text2)">Pas encore de résultat</p>'}
+    ${ranking.length > 3 ? `<button class="btn btn-outline btn-sm" style="margin-top:10px;width:100%;font-size:12px" onclick="showTop3Popup('${name.replace(/'/g, "\\'")}','${safeId}')">Voir tout (${ranking.length})</button>` : ''}
+  </div>`;
+}
+function showTop3Popup(title, safeId) {
+  if (!top3DataCache) return;
+  const all = [...top3DataCache.teams, ...top3DataCache.groups, ...top3DataCache.rounds];
+  const entry = all.find(e => e.name === title) || all.find(e => e.name.replace(/[^a-z0-9]/gi, '_') === safeId);
+  if (!entry) return;
+  const rows = entry.ranking.map((r, i) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border)">
+      <span style="font-size:14px;color:var(--text)">${i < 3 ? ['🥇', '🥈', '🥉'][i] : '#' + (i + 1)} ${r.pseudo}</span>
+      <span class="rank-pts">${r.points}</span>
+    </div>`).join('');
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = '<div style="background:var(--bg2);border-radius:16px;padding:20px;max-width:420px;width:100%;max-height:80vh;overflow-y:auto;border:1px solid var(--border)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h3 style="color:var(--gold);font-family:Bebas Neue,sans-serif;font-size:1.4rem;margin:0">' + entry.name + '</h3><button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:none;border:none;color:var(--text2);font-size:1.5rem;cursor:pointer">✕</button></div><div>' + rows + '</div></div>';
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+async function renderPublicTop3() {
+  const container = document.getElementById('public-top3-content');
+  if (!container) return;
+  container.innerHTML = '<div class="empty-state"><p>Chargement…</p></div>';
+  try {
+    const data = await computeAllTop3Data();
+    top3DataCache = data;
+    const grid = arr => `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:28px">${arr.join('')}</div>`;
+    container.innerHTML = `
+      <h3 style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:1.2rem;margin:0 0 12px">🌍 Par pays</h3>
+      ${data.teams.length ? grid(data.teams.map(t => buildTop3Card(t.name, t.ranking, TEAM_FLAGS[t.name] || ''))) : '<div class="empty-state"><p>Aucun match joué pour l\'instant.</p></div>'}
+      <h3 style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:1.2rem;margin:0 0 12px">📋 Par groupe</h3>
+      ${data.groups.length ? grid(data.groups.map(g => buildTop3Card(g.name, g.ranking, '📋'))) : '<div class="empty-state"><p>Aucun match joué pour l\'instant.</p></div>'}
+      <h3 style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:1.2rem;margin:0 0 12px">🏆 Par tour de compétition</h3>
+      ${data.rounds.length ? grid(data.rounds.map(r => buildTop3Card(r.name, r.ranking, '🏆'))) : '<div class="empty-state"><p>Aucun match joué pour l\'instant.</p></div>'}
+    `;
+  } catch (e) {
+    console.error(e);
+    container.innerHTML = '<div class="empty-state"><p>Erreur de chargement.</p></div>';
+  }
+}
 function buildPublicRankingTable(title, list, columns) {
   // columns: [{ key, label, width }]
   const colWidths = columns.map(c => c.width || '90px').join(' ');
   const gridTemplate = `40px 1fr ${colWidths}`;
+  const minWidth = 40 + 170 + columns.reduce((sum, c) => sum + parseInt(c.width || '90', 10), 0);
   const cellClass = key => key === 'points' ? 'rank-pts' : key === 'exact' ? 'rank-exact' : '';
   const rows = list.map((r, i) => {
     const cls = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
@@ -2806,10 +2931,12 @@ function buildPublicRankingTable(title, list, columns) {
       ${columns.map(c => `<div class="${cellClass(c.key)}" style="text-align:center">${r[c.key] ?? 0}</div>`).join('')}
     </div>`;
   }).join('');
-  return `<div class="ranking-card" style="border:1px solid var(--gold);border-radius:12px;overflow:hidden">
-    ${title ? `<div style="padding:10px 14px;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;background:var(--bg3);border-bottom:1px solid var(--border)">${title}</div>` : ''}
+  return `<div class="ranking-card" style="border:1px solid var(--gold);border-radius:12px;overflow:hidden;overflow-x:auto">
+    ${title ? `<div style="padding:10px 14px;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;background:var(--bg3);border-bottom:1px solid var(--border);min-width:${minWidth}px">${title}</div>` : ''}
+    <div style="min-width:${minWidth}px">
     <div class="rank-row header" style="grid-template-columns:${gridTemplate}"><div></div><div>Participant</div>${columns.map(c => `<div style="text-align:center">${c.label}</div>`).join('')}</div>
     ${rows || '<div class="empty-state"><p>Aucune donnée</p></div>'}
+    </div>
   </div>`;
 }
 async function computeEfficiencyStats() {
@@ -3138,6 +3265,7 @@ async function renderPublicResults() {
         <button onclick="switchPublicTab('speciaux', this)">🎯 Pronostics spéciaux</button>
         <button onclick="switchPublicTab('chance', this)">🎯 Efficacité</button>
         <button onclick="switchPublicTab('team', this)">🌍 Par équipe</button>
+        <button onclick="switchPublicTab('top3', this)">🥇 Tous les Top 3</button>
         <button onclick="switchPublicTab('onze', this)">⚽ Onze Type</button>
       </div>
       <div id="public-tab-general">
@@ -3156,8 +3284,14 @@ async function renderPublicResults() {
       </div>
       <div id="public-tab-finale" style="display:none">
         ${buildPublicRankingTable('', phaseRankings.finale, [
-          { key: 'points', label: 'Points Totaux', width: '120px' },
-          { key: 'exact', label: 'Scores Exacts', width: '120px' }
+          { key: 'points', label: 'Points Totaux', width: '110px' },
+          { key: 'r16', label: '1/16', width: '75px' },
+          { key: 'r8', label: '1/8', width: '75px' },
+          { key: 'r4', label: '1/4', width: '75px' },
+          { key: 'r2', label: '1/2', width: '75px' },
+          { key: 'petite', label: 'Petite finale', width: '95px' },
+          { key: 'finaleMatch', label: 'Finale', width: '75px' },
+          { key: 'exact', label: 'Scores Exacts', width: '110px' }
         ])}
       </div>
       <div id="public-tab-speciaux" style="display:none">
@@ -3188,6 +3322,11 @@ async function renderPublicResults() {
         </select>
         <div id="public-team-results"></div>
       </div>
+      <div id="public-tab-top3" style="display:none">
+        <h3 style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:1.2rem;margin:0 0 8px">🥇 Tous les Top 3</h3>
+        <p style="color:var(--text2);font-size:12px;margin:-4px 0 14px">Top 3 par pays, par groupe et par tour de compétition — clique sur « Voir tout » pour le classement complet</p>
+        <div id="public-top3-content"><div class="empty-state"><p>Chargement…</p></div></div>
+      </div>
       <div id="public-tab-onze" style="display:none">
         <h2 style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;text-align:center;font-size:1.6rem;margin-bottom:4px">⚽ LE ONZE TYPE DU CONCOURS</h2>
         <p style="text-align:center;color:var(--text2);font-size:13px;margin:0 0 14px">Il fallait avoir pronostiqué au moins 75% des matchs déjà joués pour être éligible</p>
@@ -3199,12 +3338,13 @@ async function renderPublicResults() {
   }
 }
 function switchPublicTab(tab, btn) {
-  ['general', 'groupes', 'finale', 'speciaux', 'chance', 'team', 'onze'].forEach(t => {
+  ['general', 'groupes', 'finale', 'speciaux', 'chance', 'team', 'top3', 'onze'].forEach(t => {
     const el = document.getElementById('public-tab-' + t);
     if (el) el.style.display = (t === tab) ? '' : 'none';
   });
   document.querySelectorAll('#public-tabs button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+  if (tab === 'top3' && !top3DataCache) renderPublicTop3();
 }
 async function loadPublicTeamRanking() {
   const select = document.getElementById('public-team-select');
