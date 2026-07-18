@@ -3297,8 +3297,8 @@ async function renderPublicResults() {
           <div style="text-align:center">${finalePtsMap[r.pseudo] || 0}</div>
           <div style="text-align:center">${specialPtsMap[r.pseudo] || 0}</div>
           <div class="rank-exact" style="text-align:center">${r.exact}</div>
-          <div style="text-align:center"><button class="btn btn-outline btn-sm" style="font-size:12px;padding:4px 8px" onclick="togglePublicMosaic('${r.pseudo.replace(/'/g, "\\'")}','${rid}')">🎨 Mosaïque</button></div>
-          <div style="text-align:center"><button class="btn btn-outline btn-sm" style="font-size:12px;padding:4px 8px" onclick="togglePublicEvolution('${r.pseudo.replace(/'/g, "\\'")}','${eid}')">📈 Évolution</button></div>
+          <div style="text-align:center"><button class="btn btn-outline btn-sm" style="font-size:12px;padding:4px 8px" onclick="togglePublicMosaic('${r.pseudo.replace(/'/g, "\\'")}','${rid}')">🎨 MOSAÏQUE</button></div>
+          <div style="text-align:center"><button class="btn btn-outline btn-sm" style="font-size:12px;padding:4px 8px" onclick="togglePublicEvolution('${r.pseudo.replace(/'/g, "\\'")}','${eid}')">📈 STRAVA</button></div>
         </div>
         <div id="${rid}" style="display:none;padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border)"></div>
         <div id="${eid}" style="display:none;padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border)"></div>`;
