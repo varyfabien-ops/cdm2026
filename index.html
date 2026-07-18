@@ -3031,8 +3031,8 @@ function buildGoalNetSVG() {
   </svg>`;
 }
 const ONZE_POS_LABELS = {
-  ST: 'Attaquant', LW: 'Ailier gauche', CAM: 'Milieu offensif', RW: 'Ailier droit',
-  DM: 'Milieu défensif', LB: 'Arrière gauche', CB: 'Défenseur central', RB: 'Arrière droit', GK: 'Gardien'
+  ST: 'ATTAQUANT', LW: 'AILIER GAUCHE', CAM: 'MILIEU OFFENSIF', RW: 'AILIER DROIT',
+  DM: 'MILIEU DÉFENSIF', LB: 'ARRIÈRE GAUCHE', CB: 'DÉFENSEUR CENTRAL', RB: 'ARRIÈRE', GK: 'GARDIEN DE BUT'
 };
 function buildOnzeTypeHTML(team) {
   const chip = p => `<div style="background:rgba(255,255,255,0.95);border-radius:10px;padding:10px 16px;width:auto;min-width:150px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.25)">
@@ -3143,7 +3143,7 @@ async function renderPublicResults() {
       <div id="public-tab-general">
         <div class="ranking-card" style="border:1px solid var(--gold);border-radius:12px;overflow:hidden;overflow-x:auto">
           <div class="rank-row header" style="grid-template-columns:${overallGrid};min-width:820px">
-            <div></div><div>Participant</div><div style="text-align:center">Points totaux</div><div style="text-align:center">Pts Groupes</div><div style="text-align:center">Pts Finale</div><div style="text-align:center">Pts Spéciaux</div><div style="text-align:center">Scores exacts</div><div></div><div></div>
+            <div></div><div>Participant</div><div style="text-align:center">Points totaux</div><div style="text-align:center">Phase de Groupes</div><div style="text-align:center">Phase Finale</div><div style="text-align:center">Pronostics Spéciaux</div><div style="text-align:center">Scores exacts</div><div></div><div></div>
           </div>
           <div style="min-width:820px">${overallRows || '<div class="empty-state"><p>Aucun participant.</p></div>'}</div>
         </div>
@@ -3162,10 +3162,10 @@ async function renderPublicResults() {
       </div>
       <div id="public-tab-speciaux" style="display:none">
         ${buildPublicRankingTable('', specialRanking, [
-          { key: 'points', label: 'Points Totaux', width: '100px' },
-          { key: 'top4Pts', label: 'Points Top 4', width: '100px' },
-          { key: 'goalsPts', label: 'Points Buts', width: '100px' },
-          { key: 'winnerPts', label: 'Points Vainqueur', width: '110px' }
+          { key: 'points', label: 'Points Totaux', width: '120px' },
+          { key: 'top4Pts', label: 'Points Top 4', width: '120px' },
+          { key: 'goalsPts', label: 'Points Buts', width: '120px' },
+          { key: 'winnerPts', label: 'Points Vainqueur', width: '120px' }
         ])}
       </div>
       <div id="public-tab-chance" style="display:none">
