@@ -216,6 +216,15 @@ select.form-input{appearance:none;cursor:pointer}
   body.print-onze-only #public-tabs,
   body.print-onze-only #onze-print-btn { display: none !important; }
   body.print-onze-only #public-content > div:not(#public-tab-onze) { display: none !important; }
+  body.print-ranking-only #auth-overlay,
+  body.print-ranking-only #app,
+  body.print-ranking-only .toast,
+  body.print-ranking-only #diploma-render,
+  body.print-ranking-only #mascot-left,
+  body.print-ranking-only #mascot-right,
+  body.print-ranking-only #public-tabs,
+  body.print-ranking-only #print-ranking-controls { display: none !important; }
+  body.print-ranking-only #public-content > div:not(#public-tab-impression) { display: none !important; }
 }
 </style>
 </head>
@@ -2859,6 +2868,7 @@ async function computeSpecialRanking() {
     .sort((a, b) => b.points - a.points || new Date(a.createdAt || '9999-12-31') - new Date(b.createdAt || '9999-12-31'));
 }
 let top3DataCache = null;
+let publicRankingsCache = null;
 function buildTop3Card(name, ranking, icon) {
   const medals = ['🥇', '🥈', '🥉'];
   const podium = ranking.slice(0, 3).map((r, i) => `
@@ -2895,7 +2905,7 @@ function renderTop3FromCache(data) {
   const grid = arr => `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:28px">${arr.join('')}</div>`;
   container.innerHTML = `
     <h3 style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:1.2rem;margin:0 0 12px">🌍 Par pays</h3>
-    ${data.teams.length ? grid(data.teams.map(t => buildTop3Card(t.name, t.ranking, ''))) : '<div class="empty-state"><p>Aucun match joué pour l\'instant.</p></div>'}
+    ${data.teams.length ? grid([...data.teams].sort((a, b) => a.name.localeCompare(b.name)).map(t => buildTop3Card(t.name, t.ranking, ''))) : '<div class="empty-state"><p>Aucun match joué pour l\'instant.</p></div>'}
     <h3 style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:1.2rem;margin:0 0 12px">📋 Par groupe</h3>
     ${data.groups.length ? grid(data.groups.map(g => buildTop3Card(g.name, g.ranking, '📋'))) : '<div class="empty-state"><p>Aucun match joué pour l\'instant.</p></div>'}
     <h3 style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:1.2rem;margin:0 0 12px">🏆 Par tour de compétition</h3>
@@ -3244,6 +3254,7 @@ async function renderPublicResults() {
       koRounds: phaseRankingsRaw.koRounds
     };
     const specialRanking = specialRankingRaw.filter(r => participantsSpecial.has(r.pseudo));
+    publicRankingsCache = { overall, phaseRankings, specialRanking, allPseudos: overallRaw.map(r => r.pseudo).sort((a, b) => a.localeCompare(b)) };
 
     // Cartes de correspondance pseudo -> points par catégorie, pour enrichir le classement général
     const groupPtsMap = {}; phaseRankingsRaw.groupes.forEach(r => { groupPtsMap[r.pseudo] = r.points; });
@@ -3279,6 +3290,7 @@ async function renderPublicResults() {
         <button onclick="switchPublicTab('finale', this)">🔥 Phase finale</button>
         <button onclick="switchPublicTab('speciaux', this)">🎯 Pronostics spéciaux</button>
         <button onclick="switchPublicTab('top3', this)">🥇 Tous les Top 3</button>
+        <button onclick="switchPublicTab('impression', this)">🖨️ Impression</button>
         <button onclick="switchPublicTab('onze', this)">⚽ Onze Type</button>
       </div>
       <div id="public-tab-general">
@@ -3319,6 +3331,27 @@ async function renderPublicResults() {
         <p style="color:var(--text2);font-size:12px;margin:-4px 0 14px">Top 3 par pays, par groupe et par tour de compétition — clique sur « Voir tout » pour le classement complet</p>
         <div id="public-top3-content"><div class="empty-state"><p>Chargement…</p></div></div>
       </div>
+      <div id="public-tab-impression" style="display:none">
+        <h3 style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:1.2rem;margin:0 0 8px">🖨️ Imprimer un classement</h3>
+        <p style="color:var(--text2);font-size:12px;margin:-4px 0 14px">Idéal pour chambrer ton service : imprime le classement de ton choix, avec seulement les personnes que tu veux</p>
+        <div id="print-ranking-controls" class="form-card" style="margin-bottom:16px">
+          <label class="form-label">Étape 1 — Quel classement ?</label>
+          <select id="print-ranking-select" class="form-input" style="margin-bottom:16px">
+            <option value="general">Classement général</option>
+            <option value="groupes">Phase de groupes</option>
+            <option value="finale">Phase finale</option>
+            <option value="speciaux">Pronostics spéciaux</option>
+          </select>
+          <label class="form-label">Étape 2 — Qui inclure ?</label>
+          <div style="display:flex;gap:20px;margin:8px 0 12px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:15px;cursor:pointer"><input type="radio" name="print-scope" value="all" checked onchange="togglePrintPeoplePicker()"> Tout le monde</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:15px;cursor:pointer"><input type="radio" name="print-scope" value="some" onchange="togglePrintPeoplePicker()"> Sélectionner des personnes</label>
+          </div>
+          <div id="print-people-picker" style="display:none;max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:14px"></div>
+          <button class="btn btn-gold" onclick="printSelectedRanking()">🖨️ Générer et imprimer</button>
+        </div>
+        <div id="print-ranking-preview"></div>
+      </div>
       <div id="public-tab-onze" style="display:none">
         <h2 style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;text-align:center;font-size:1.6rem;margin-bottom:4px">⚽ LE ONZE TYPE DU CONCOURS</h2>
         <p style="text-align:center;color:var(--text2);font-size:13px;margin:0 0 14px">Il fallait avoir pronostiqué au moins 75% des matchs déjà joués pour être éligible</p>
@@ -3333,13 +3366,64 @@ async function renderPublicResults() {
   }
 }
 function switchPublicTab(tab, btn) {
-  ['general', 'groupes', 'finale', 'speciaux', 'chance', 'top3', 'onze'].forEach(t => {
+  ['general', 'groupes', 'finale', 'speciaux', 'top3', 'impression', 'onze'].forEach(t => {
     const el = document.getElementById('public-tab-' + t);
     if (el) el.style.display = (t === tab) ? '' : 'none';
   });
   document.querySelectorAll('#public-tabs button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   if (tab === 'top3') renderPublicTop3();
+  if (tab === 'impression') initPrintPeoplePicker();
+}
+function initPrintPeoplePicker() {
+  const picker = document.getElementById('print-people-picker');
+  if (!picker || picker.dataset.loaded || !publicRankingsCache) return;
+  picker.innerHTML = publicRankingsCache.allPseudos.map(p => `
+    <label style="display:flex;align-items:center;gap:8px;font-size:14px;padding:3px 0;cursor:pointer">
+      <input type="checkbox" value="${p.replace(/"/g, '&quot;')}" class="print-person-check"> ${p}
+    </label>`).join('');
+  picker.dataset.loaded = '1';
+}
+function togglePrintPeoplePicker() {
+  const scope = document.querySelector('input[name="print-scope"]:checked').value;
+  const picker = document.getElementById('print-people-picker');
+  picker.style.display = scope === 'some' ? 'block' : 'none';
+  if (scope === 'some') initPrintPeoplePicker();
+}
+function printSelectedRanking() {
+  if (!publicRankingsCache) return;
+  const rankingType = document.getElementById('print-ranking-select').value;
+  const scope = document.querySelector('input[name="print-scope"]:checked').value;
+  const selected = scope === 'some'
+    ? new Set([...document.querySelectorAll('.print-person-check:checked')].map(c => c.value))
+    : null;
+
+  const defs = {
+    general: { title: 'Classement général', list: publicRankingsCache.overall, cols: [{ key: 'points', label: 'Points Totaux', width: '110px' }, { key: 'exact', label: 'Scores Exacts', width: '110px' }] },
+    groupes: { title: 'Phase de groupes', list: publicRankingsCache.phaseRankings.groupes, cols: [{ key: 'points', label: 'Points Totaux', width: '120px' }, { key: 'exact', label: 'Scores Exacts', width: '120px' }] },
+    finale: { title: 'Phase finale', list: publicRankingsCache.phaseRankings.finale, cols: [{ key: 'points', label: 'Points Totaux', width: '110px' }, { key: 'r16', label: '1/16', width: '75px' }, { key: 'r8', label: '1/8', width: '75px' }, { key: 'r4', label: '1/4', width: '75px' }, { key: 'r2', label: '1/2', width: '75px' }, { key: 'finales', label: 'Finales', width: '90px' }, { key: 'exact', label: 'Scores Exacts', width: '110px' }] },
+    speciaux: { title: 'Pronostics spéciaux', list: publicRankingsCache.specialRanking, cols: [{ key: 'points', label: 'Points Totaux', width: '100px' }, { key: 'top4Pts', label: 'Points Top 4', width: '100px' }, { key: 'goalsPts', label: 'Points Buts', width: '100px' }, { key: 'winnerPts', label: 'Points Vainqueur', width: '110px' }] }
+  };
+  const def = defs[rankingType];
+  const filteredList = selected ? def.list.filter(r => selected.has(r.pseudo)) : def.list;
+  const subtitle = selected
+    ? `Sélection : ${[...selected].join(', ')}`
+    : 'Tous les participants';
+
+  const preview = document.getElementById('print-ranking-preview');
+  preview.innerHTML = `
+    <div style="text-align:center;margin-bottom:14px">
+      <div class="hero-badge" style="display:inline-block">CSE Astrea Monts — Concours Officiel</div>
+      <h2 style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;margin:8px 0 4px">${def.title.toUpperCase()}</h2>
+      <p style="color:var(--text2);font-size:13px">${subtitle}</p>
+    </div>
+    ${buildPublicRankingTable('', filteredList, def.cols)}`;
+
+  document.body.classList.add('print-ranking-only');
+  const cleanup = () => document.body.classList.remove('print-ranking-only');
+  window.addEventListener('afterprint', cleanup, { once: true });
+  window.print();
+  setTimeout(cleanup, 1000);
 }
 async function togglePublicMosaic(pseudo, rid) {
   const el = document.getElementById(rid);
