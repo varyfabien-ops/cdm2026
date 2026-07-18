@@ -3164,7 +3164,7 @@ async function computeOnzeType(precomputed) {
     { pos: 'ST', label: st ? (st.rank === 1 ? 'Vainqueur du concours' : `${ord(st.rank)} du concours`) : 'Vainqueur du concours', fun: 'Notre buteur en chef', pseudo: st && st.pseudo },
     { pos: 'LW', label: 'Meilleure série de bons résultats', fun: 'Le métronome de l\'aile gauche', pseudo: lw && lw.pseudo },
     { pos: 'CAM', label: 'Le plus près du nombre de buts total', fun: 'Notre atout création', pseudo: cam && cam.pseudo },
-    { pos: 'RW', label: rw ? (rw.rank === 1 ? 'Leader Pronostics spéciaux' : `${ord(rw.rank)} Pronostics spéciaux`) : 'Leader Pronostics spéciaux', fun: 'Le spécialiste des grandes occasions', pseudo: rw && rw.pseudo },
+    { pos: 'RW', label: rw ? (rw.rank === 1 ? 'Leader Pronostics spéciaux' : `${ord(rw.rank)} Pronostics spéciaux`) : 'Leader Pronostics spéciaux', fun: 'L'Argentine a MESSI, l'Espagne a YAMAL ... Astrea Monts a bien mieux !', pseudo: rw && rw.pseudo },
     { pos: 'DM', label: dm1 ? `${ord(dm1.rank)} du concours` : '2e du concours', fun: 'Le dauphin increvable', pseudo: dm1 && dm1.pseudo },
     { pos: 'DM', label: dm2 ? `${ord(dm2.rank)} du concours` : '3e du concours', fun: 'Le troisième homme du milieu', pseudo: dm2 && dm2.pseudo },
     { pos: 'LB', label: lb ? `Perfect sur ${perfectInfoMap[lb.pseudo].catName} (${perfectInfoMap[lb.pseudo].total}/${perfectInfoMap[lb.pseudo].total})` : 'Perfect sur un tour, un groupe ou une équipe', fun: 'Monsieur Perfect version défense', pseudo: lb && lb.pseudo },
@@ -3349,8 +3349,8 @@ async function renderPublicResults() {
       <div id="public-tab-speciaux" style="display:none">
         ${buildPublicRankingTable('', specialRanking, [
           { key: 'points', label: 'Points Totaux', width: '110px' },
-          { key: 'top4Pts', label: 'Points Top4', width: '110px' },
-          { key: 'goalsPts', label: 'Points Buts', width: '110px' },
+          { key: 'top4Pts', label: 'Points Top4', width: '90px' },
+          { key: 'goalsPts', label: 'Points Buts', width: '90px' },
           { key: 'winnerPts', label: 'Points Vainqueur', width: '110px' }
         ])}
       </div>
@@ -3382,7 +3382,7 @@ async function renderPublicResults() {
       </div>
       <div id="public-tab-onze" style="display:none">
         <h2 style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;text-align:center;font-size:1.6rem;margin-bottom:4px">⚽ LE ONZE TYPE DU CONCOURS</h2>
-        <p style="text-align:center;color:var(--text2);font-size:13px;margin:0 0 14px">Il fallait avoir pronostiqué au moins 75% des matchs déjà joués pour être éligible</p>
+        <p style="text-align:center;color:var(--text2);font-size:13px;margin:0 0 14px">(Éligibilité : Au moins 75% de matchs pronostiqués)</p>
         <div style="text-align:center;margin-bottom:14px">
           <button id="onze-print-btn" class="btn btn-outline btn-sm" onclick="printOnzeType()">🖨️ Imprimer le Onze Type</button>
         </div>
