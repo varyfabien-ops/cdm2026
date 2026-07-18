@@ -226,13 +226,16 @@ select.form-input{appearance:none;cursor:pointer}
   body.print-onze-only #onze-pitch {
     margin: 0 auto !important;
     min-height: 0 !important;
-    height: auto !important;
-    padding: 14px 10px !important;
-    border-width: 2px !important;
+    height: 640px !important;
+    width: 100% !important;
+    max-width: 1000px !important;
+    padding: 26px 16px !important;
+    border-width: 3px !important;
+    box-sizing: border-box !important;
   }
-  body.print-onze-only #onze-pitch .onze-body { gap: 6px !important; }
-  body.print-onze-only #onze-pitch .onze-chip { padding: 5px 10px !important; min-width: 110px !important; border-radius: 8px !important; }
-  body.print-onze-only #onze-pitch .onze-chip > div { font-size: 12px !important; }
+  body.print-onze-only #onze-pitch .onze-body { gap: 14px !important; }
+  body.print-onze-only #onze-pitch .onze-chip { padding: 10px 16px !important; min-width: 150px !important; border-radius: 10px !important; }
+  body.print-onze-only #onze-pitch .onze-chip > div { font-size: 15px !important; }
   body.print-ranking-only #auth-overlay,
   body.print-ranking-only #app,
   body.print-ranking-only .toast,
@@ -3158,17 +3161,17 @@ async function computeOnzeType(precomputed) {
 
   // Ordre de retour = ordre d'affichage sur le terrain (attaque → gardien)
   const team = [
-    { pos: 'ST', label: st ? (st.rank === 1 ? 'Vainqueur du concours' : `${ord(st.rank)} du concours`) : 'Vainqueur du concours', pseudo: st && st.pseudo },
-    { pos: 'LW', label: 'Meilleure série de bons résultats', pseudo: lw && lw.pseudo },
-    { pos: 'CAM', label: 'Le plus près du nombre de buts total', pseudo: cam && cam.pseudo },
-    { pos: 'RW', label: rw ? (rw.rank === 1 ? 'Leader Pronostics spéciaux' : `${ord(rw.rank)} Pronostics spéciaux`) : 'Leader Pronostics spéciaux', pseudo: rw && rw.pseudo },
-    { pos: 'DM', label: dm1 ? `${ord(dm1.rank)} du concours` : '2e du concours', pseudo: dm1 && dm1.pseudo },
-    { pos: 'DM', label: dm2 ? `${ord(dm2.rank)} du concours` : '3e du concours', pseudo: dm2 && dm2.pseudo },
-    { pos: 'LB', label: lb ? `Perfect sur ${perfectInfoMap[lb.pseudo].catName} (${perfectInfoMap[lb.pseudo].total}/${perfectInfoMap[lb.pseudo].total})` : 'Perfect sur un tour, un groupe ou une équipe', pseudo: lb && lb.pseudo },
-    { pos: 'CB', label: cb1 ? (cb1.rank === 1 ? 'Meilleur Phase de groupes' : `${ord(cb1.rank)} Phase de groupes`) : 'Meilleur Phase de groupes', pseudo: cb1 && cb1.pseudo },
-    { pos: 'CB', label: cb2 ? (cb2.rank === 1 ? 'Meilleur Phase finale' : `${ord(cb2.rank)} Phase finale`) : 'Meilleur Phase finale', pseudo: cb2 && cb2.pseudo },
-    { pos: 'RB', label: 'Plus forte remontée en phase finale', pseudo: rb && rb.pseudo },
-    { pos: 'GK', label: gkLabel, pseudo: gk && gk.pseudo },
+    { pos: 'ST', label: st ? (st.rank === 1 ? 'Vainqueur du concours' : `${ord(st.rank)} du concours`) : 'Vainqueur du concours', fun: 'Notre buteur en chef', pseudo: st && st.pseudo },
+    { pos: 'LW', label: 'Meilleure série de bons résultats', fun: 'Le métronome de l\'aile gauche', pseudo: lw && lw.pseudo },
+    { pos: 'CAM', label: 'Le plus près du nombre de buts total', fun: 'Notre atout création', pseudo: cam && cam.pseudo },
+    { pos: 'RW', label: rw ? (rw.rank === 1 ? 'Leader Pronostics spéciaux' : `${ord(rw.rank)} Pronostics spéciaux`) : 'Leader Pronostics spéciaux', fun: 'Le spécialiste des grandes occasions', pseudo: rw && rw.pseudo },
+    { pos: 'DM', label: dm1 ? `${ord(dm1.rank)} du concours` : '2e du concours', fun: 'Le dauphin increvable', pseudo: dm1 && dm1.pseudo },
+    { pos: 'DM', label: dm2 ? `${ord(dm2.rank)} du concours` : '3e du concours', fun: 'Le troisième homme du milieu', pseudo: dm2 && dm2.pseudo },
+    { pos: 'LB', label: lb ? `Perfect sur ${perfectInfoMap[lb.pseudo].catName} (${perfectInfoMap[lb.pseudo].total}/${perfectInfoMap[lb.pseudo].total})` : 'Perfect sur un tour, un groupe ou une équipe', fun: 'Monsieur Perfect version défense', pseudo: lb && lb.pseudo },
+    { pos: 'CB', label: cb1 ? (cb1.rank === 1 ? 'Meilleur Phase de groupes' : `${ord(cb1.rank)} Phase de groupes`) : 'Meilleur Phase de groupes', fun: 'Le roc de la phase de groupes', pseudo: cb1 && cb1.pseudo },
+    { pos: 'CB', label: cb2 ? (cb2.rank === 1 ? 'Meilleur Phase finale' : `${ord(cb2.rank)} Phase finale`) : 'Meilleur Phase finale', fun: 'Le mur des grands soirs', pseudo: cb2 && cb2.pseudo },
+    { pos: 'RB', label: 'Plus forte remontée en phase finale', fun: 'La fusée de fin de tournoi', pseudo: rb && rb.pseudo },
+    { pos: 'GK', label: gkLabel, fun: 'Le dernier rempart multi-champion', pseudo: gk && gk.pseudo },
   ];
   return { team, champions };
 }
@@ -3233,10 +3236,10 @@ function buildOnzeTypeHTML(data) {
     <div class="rank-row" style="grid-template-columns:150px 1fr 1fr">
       <div style="color:var(--gold);font-weight:600">${ONZE_POS_LABELS[p.pos] || p.pos}</div>
       <div class="rank-pseudo">${p.pseudo || '?'}</div>
-      <div style="color:var(--text2);font-size:13px">${p.label}</div>
+      <div style="color:var(--text2);font-size:13px;font-style:italic">${p.fun || p.label}</div>
     </div>`).join('');
   const table = `<div class="ranking-card" style="border:1px solid var(--gold);border-radius:12px;overflow:hidden;margin-top:20px">
-    <div class="rank-row header" style="grid-template-columns:150px 1fr 1fr"><div>Poste</div><div>Joueur</div><div>Critère</div></div>
+    <div class="rank-row header" style="grid-template-columns:150px 1fr 1fr"><div>Poste</div><div>Joueur</div><div>Petit mot</div></div>
     ${tableRows}
   </div>`;
   return pitch + table;
