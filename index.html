@@ -243,9 +243,10 @@ select.form-input{appearance:none;cursor:pointer}
   body.print-ranking-only #diploma-render,
   body.print-ranking-only #mascot-left,
   body.print-ranking-only #mascot-right,
-  body.print-ranking-only #public-tabs,
-  body.print-ranking-only #print-ranking-controls { display: none !important; }
+  body.print-ranking-only #public-tabs { display: none !important; }
+  body.print-ranking-only #public-page-header p { display: none !important; }
   body.print-ranking-only #public-content > div:not(#public-tab-impression) { display: none !important; }
+  body.print-ranking-only #public-tab-impression > *:not(#print-ranking-preview) { display: none !important; }
 }
 </style>
 </head>
@@ -3312,6 +3313,7 @@ async function renderPublicResults() {
         <button onclick="switchPublicTab('top3', this)">🥇 Tous les Top 3</button>
         <button onclick="switchPublicTab('onze', this)">⚽ Onze Type</button>
         <button onclick="switchPublicTab('impression', this)">🖨️ Impression</button>
+        <button onclick="switchPublicTab('sondage', this)">📝 Sondage</button>
       </div>
       <div id="public-tab-general">
         <div class="ranking-card" style="border:1px solid var(--gold);border-radius:12px;overflow:hidden;overflow-x:auto">
@@ -3372,6 +3374,33 @@ async function renderPublicResults() {
         </div>
         <div id="print-ranking-preview"></div>
       </div>
+      <div id="public-tab-sondage" style="display:none">
+        <h3 style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:1.2rem;margin:0 0 8px">📝 Donne ton avis</h3>
+        <p style="color:var(--text2);font-size:12px;margin:-4px 0 14px">Anonyme et sans limite — dis-nous ce que tu en as pensé, et ce que tu veux pronostiquer ensuite</p>
+        <div id="sondage-form-wrap">
+          <div class="form-card">
+            <label class="form-label">Qu'as-tu pensé du concours CDM 2026 ?</label>
+            <div id="sondage-stars" style="font-size:32px;letter-spacing:6px;margin:8px 0 16px;cursor:pointer">
+              <span data-star="1" onclick="setSondageRating(1)">☆</span><span data-star="2" onclick="setSondageRating(2)">☆</span><span data-star="3" onclick="setSondageRating(3)">☆</span><span data-star="4" onclick="setSondageRating(4)">☆</span><span data-star="5" onclick="setSondageRating(5)">☆</span>
+            </div>
+            <label class="form-label">Un commentaire ? (optionnel)</label>
+            <textarea id="sondage-comment" class="form-input" rows="3" maxlength="500" placeholder="Ton avis, une suggestion, un truc à améliorer..." style="margin-bottom:16px;resize:vertical"></textarea>
+            <label class="form-label">Sur quelle(s) compétition(s) veux-tu qu'on fasse un prochain concours ?</label>
+            <div style="display:flex;flex-direction:column;gap:8px;margin:8px 0 16px">
+              <label style="display:flex;align-items:center;gap:8px;font-size:15px;cursor:pointer"><input type="checkbox" value="Roland Garros" class="sondage-comp"> Roland Garros</label>
+              <label style="display:flex;align-items:center;gap:8px;font-size:15px;cursor:pointer"><input type="checkbox" value="Coupe du Monde de Rugby" class="sondage-comp"> Coupe du Monde de Rugby</label>
+              <label style="display:flex;align-items:center;gap:8px;font-size:15px;cursor:pointer"><input type="checkbox" value="Coupe du Monde de Foot Féminin" class="sondage-comp"> Coupe du Monde de Foot Féminin</label>
+              <label style="display:flex;align-items:center;gap:8px;font-size:15px;cursor:pointer"><input type="checkbox" value="Tour de France" class="sondage-comp"> Tour de France</label>
+            </div>
+            <button class="btn btn-gold" onclick="submitSondage()">Envoyer mon avis</button>
+            <div id="sondage-msg" style="margin-top:10px;font-size:13px"></div>
+          </div>
+        </div>
+        <div style="text-align:center;margin-top:20px">
+          <button class="btn btn-outline btn-sm" onclick="loadSondageResults()">📊 Voir les résultats du sondage</button>
+        </div>
+        <div id="sondage-results" style="margin-top:16px"></div>
+      </div>
       <div id="public-tab-onze" style="display:none">
         <h2 style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;text-align:center;font-size:1.6rem;margin-bottom:4px">⚽ LE ONZE TYPE DU CONCOURS</h2>
         <p style="text-align:center;color:var(--text2);font-size:13px;margin:0 0 14px">(Éligibilité : Au moins 75% de matchs pronostiqués)</p>
@@ -3386,7 +3415,7 @@ async function renderPublicResults() {
   }
 }
 function switchPublicTab(tab, btn) {
-  ['general', 'groupes', 'finale', 'speciaux', 'top3', 'impression', 'onze'].forEach(t => {
+  ['general', 'groupes', 'finale', 'speciaux', 'top3', 'impression', 'sondage', 'onze'].forEach(t => {
     const el = document.getElementById('public-tab-' + t);
     if (el) el.style.display = (t === tab) ? '' : 'none';
   });
@@ -3431,8 +3460,6 @@ function printSelectedRanking() {
   const preview = document.getElementById('print-ranking-preview');
   preview.innerHTML = `
     <div style="text-align:center;margin-bottom:14px">
-      <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;font-size:1.1rem">CSE ASTREA MONTS — CONCOURS OFFICIEL</div>
-      <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;font-size:1.4rem;margin-top:2px">CLASSEMENT — CDM 2026</div>
       <h2 style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;margin:8px 0 2px;color:var(--gold)">${def.title.toUpperCase()}</h2>
       ${customTitle ? `<p style="font-size:15px;font-style:italic;margin:2px 0 0">${customTitle}</p>` : ''}
     </div>
@@ -3443,6 +3470,101 @@ function printSelectedRanking() {
   window.addEventListener('afterprint', cleanup, { once: true });
   window.print();
   setTimeout(cleanup, 1000);
+}
+
+let sondageRating = 0;
+function setSondageRating(n) {
+  sondageRating = n;
+  document.querySelectorAll('#sondage-stars span').forEach(el => {
+    const star = Number(el.dataset.star);
+    el.textContent = star <= n ? '★' : '☆';
+    el.style.color = star <= n ? 'var(--gold)' : 'var(--text3)';
+  });
+}
+async function submitSondage() {
+  const msg = document.getElementById('sondage-msg');
+  const comment = (document.getElementById('sondage-comment').value || '').trim();
+  const competitions = [...document.querySelectorAll('.sondage-comp:checked')].map(c => c.value);
+  if (!sondageRating && !comment && !competitions.length) {
+    msg.style.color = 'var(--red)';
+    msg.textContent = 'Donne au moins une note, un commentaire ou une compétition avant d\'envoyer 🙂';
+    return;
+  }
+  msg.style.color = 'var(--text2)';
+  msg.textContent = 'Envoi en cours…';
+  try {
+    const { error } = await sb.from('feedback').insert({
+      rating: sondageRating || null,
+      comment: comment || null,
+      next_competitions: competitions
+    });
+    if (error) throw error;
+    document.getElementById('sondage-form-wrap').innerHTML = '<div class="form-card"><p style="font-size:16px">✅ Merci pour ton avis !</p></div>';
+    showToast('Merci pour ton avis !');
+  } catch (e) {
+    console.error(e);
+    msg.style.color = 'var(--red)';
+    msg.textContent = "Erreur d'envoi. Réessaie plus tard, ou préviens l'admin si ça persiste.";
+  }
+}
+async function deleteSondageComment(id) {
+  const pw = prompt('Mot de passe admin pour supprimer ce commentaire :');
+  if (pw === null) return;
+  if (pw !== ADMIN_PASSWORD) { showToast('Mot de passe incorrect', 'error'); return; }
+  try {
+    const { error } = await sb.from('feedback').delete().eq('id', id);
+    if (error) throw error;
+    showToast('Commentaire supprimé');
+    loadSondageResults();
+  } catch (e) {
+    console.error(e);
+    showToast('Erreur lors de la suppression', 'error');
+  }
+}
+async function loadSondageResults() {
+  const container = document.getElementById('sondage-results');
+  container.innerHTML = '<div class="empty-state"><p>Chargement…</p></div>';
+  try {
+    const { data, error } = await sb.from('feedback').select('id,pseudo,rating,comment,next_competitions,created_at').order('created_at', { ascending: false });
+    if (error) throw error;
+    const rows = data || [];
+    const rated = rows.filter(r => r.rating);
+    const avg = rated.length ? (rated.reduce((s, r) => s + r.rating, 0) / rated.length) : 0;
+    const compCounts = {};
+    rows.forEach(r => { (r.next_competitions || []).forEach(c => { compCounts[c] = (compCounts[c] || 0) + 1; }); });
+    const compList = Object.entries(compCounts).sort((a, b) => b[1] - a[1]);
+    const maxCount = compList.length ? compList[0][1] : 1;
+    const comments = rows.filter(r => r.comment);
+
+    container.innerHTML = `
+      <div class="form-card" style="margin-bottom:16px">
+        <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:1rem;margin-bottom:8px">⭐ Note moyenne</div>
+        <div style="font-size:28px;color:var(--gold);font-weight:700">${avg ? avg.toFixed(1) : '—'} / 5</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:4px">${rows.length} participant${rows.length > 1 ? 's' : ''} au sondage</div>
+      </div>
+      <div class="form-card" style="margin-bottom:16px">
+        <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:1rem;margin-bottom:10px">🏆 Prochaine compétition souhaitée</div>
+        ${compList.length ? compList.map(([name, count]) => `
+          <div style="margin-bottom:8px">
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px"><span>${name}</span><span class="rank-pts">${count}</span></div>
+            <div style="background:var(--bg3);border-radius:6px;height:8px;overflow:hidden"><div style="background:var(--gold);height:100%;width:${(count / maxCount * 100).toFixed(0)}%"></div></div>
+          </div>`).join('') : '<p style="font-size:13px;color:var(--text2)">Pas encore de vote.</p>'}
+      </div>
+      <div class="form-card">
+        <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:1rem;margin-bottom:10px">💬 Commentaires</div>
+        ${comments.length ? comments.map(r => `
+          <div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+            <div>
+              <div style="font-size:14px;color:var(--text)">${r.comment}</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:3px">${r.pseudo || 'Anonyme'}${r.rating ? ' · ' + '★'.repeat(r.rating) : ''}</div>
+            </div>
+            <button onclick="deleteSondageComment(${r.id})" title="Supprimer (mot de passe admin requis)" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;padding:2px 4px;flex-shrink:0">🗑️</button>
+          </div>`).join('') : '<p style="font-size:13px;color:var(--text2)">Pas encore de commentaire.</p>'}
+      </div>`;
+  } catch (e) {
+    console.error(e);
+    container.innerHTML = '<div class="empty-state"><p>Le sondage n\'est pas encore configuré côté base de données, ou erreur de chargement.</p></div>';
+  }
 }
 async function togglePublicMosaic(pseudo, rid) {
   const el = document.getElementById(rid);
