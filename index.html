@@ -219,7 +219,20 @@ select.form-input{appearance:none;cursor:pointer}
   body.print-onze-only #public-tab-onze > *:not(#onze-pitch):not(h2) { display: none !important; }
   body.print-onze-only #public-page-header .hero-badge,
   body.print-onze-only #public-page-header p { display: none !important; }
-  body.print-onze-only #onze-pitch { margin: 0 auto !important; }
+  body.print-onze-only #public-page { padding: 0 !important; margin: 0 !important; max-width: none !important; }
+  body.print-onze-only #public-page-header { margin-bottom: 6px !important; }
+  body.print-onze-only #public-page-header h1 { font-size: 1.5rem !important; margin: 0 !important; }
+  body.print-onze-only #public-tab-onze h2 { font-size: 1.1rem !important; margin: 0 0 6px !important; }
+  body.print-onze-only #onze-pitch {
+    margin: 0 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 14px 10px !important;
+    border-width: 2px !important;
+  }
+  body.print-onze-only #onze-pitch .onze-body { gap: 6px !important; }
+  body.print-onze-only #onze-pitch .onze-chip { padding: 5px 10px !important; min-width: 110px !important; border-radius: 8px !important; }
+  body.print-onze-only #onze-pitch .onze-chip > div { font-size: 12px !important; }
   body.print-ranking-only #auth-overlay,
   body.print-ranking-only #app,
   body.print-ranking-only .toast,
@@ -3183,7 +3196,7 @@ const ONZE_POS_LABELS = {
 function printOnzeType() {
   const pageStyle = document.createElement('style');
   pageStyle.id = 'onze-print-page-style';
-  pageStyle.textContent = '@page { size: landscape; margin: 8mm; }';
+  pageStyle.textContent = '@page { size: landscape; margin: 6mm; }';
   document.head.appendChild(pageStyle);
   document.body.classList.add('print-onze-only');
   const cleanup = () => {
@@ -3197,7 +3210,7 @@ function printOnzeType() {
 }
 function buildOnzeTypeHTML(data) {
   const { team } = data;
-  const chip = p => `<div style="background:rgba(255,255,255,0.95);border-radius:12px;padding:14px 22px;width:auto;min-width:190px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.25)">
+  const chip = p => `<div class="onze-chip" style="background:rgba(255,255,255,0.95);border-radius:12px;padding:14px 22px;width:auto;min-width:190px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.25)">
       <div style="font-weight:700;color:#1f2937;font-size:18px;line-height:1.2;white-space:nowrap">${p.pseudo || '?'}</div>
     </div>`;
   const line = arr => `<div style="display:flex;justify-content:center;gap:14px;flex-wrap:wrap">${arr.map(chip).join('')}</div>`;
@@ -3208,7 +3221,7 @@ function buildOnzeTypeHTML(data) {
     <div style="position:absolute;top:50%;left:0;right:0;height:2px;background:rgba(255,255,255,0.4)"></div>
     <div style="position:absolute;top:50%;left:50%;width:120px;height:120px;margin:-60px 0 0 -60px;border:2px solid rgba(255,255,255,0.4);border-radius:50%;pointer-events:none"></div>
     ${buildGoalNetSVG()}
-    <div style="position:relative;display:flex;flex-direction:column;justify-content:space-between;flex:1;gap:14px">
+    <div class="onze-body" style="position:relative;display:flex;flex-direction:column;justify-content:space-between;flex:1;gap:14px">
       ${line(byPos.ST || [])}
       ${line([...(byPos.LW || []), ...(byPos.CAM || []), ...(byPos.RW || [])])}
       ${line(byPos.DM || [])}
