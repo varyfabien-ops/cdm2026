@@ -3318,8 +3318,8 @@ async function renderPublicResults() {
         <button onclick="switchPublicTab('finale', this)">🔥 Phase finale</button>
         <button onclick="switchPublicTab('speciaux', this)">🎯 Pronostics spéciaux</button>
         <button onclick="switchPublicTab('top3', this)">🥇 Tous les Top 3</button>
-        <button onclick="switchPublicTab('impression', this)">🖨️ Impression</button>
         <button onclick="switchPublicTab('onze', this)">⚽ Onze Type</button>
+        <button onclick="switchPublicTab('impression', this)">🖨️ Impression</button>
       </div>
       <div id="public-tab-general">
         <div class="ranking-card" style="border:1px solid var(--gold);border-radius:12px;overflow:hidden;overflow-x:auto">
@@ -3331,8 +3331,8 @@ async function renderPublicResults() {
       </div>
       <div id="public-tab-groupes" style="display:none">
         ${buildPublicRankingTable('', phaseRankings.groupes, [
-          { key: 'points', label: 'Points Totaux', width: '120px' },
-          { key: 'exact', label: 'Scores Exacts', width: '120px' }
+          { key: 'points', label: 'Points Totaux', width: '110px' },
+          { key: 'exact', label: 'Scores Exacts', width: '110px' }
         ])}
       </div>
       <div id="public-tab-finale" style="display:none">
@@ -3348,10 +3348,10 @@ async function renderPublicResults() {
       </div>
       <div id="public-tab-speciaux" style="display:none">
         ${buildPublicRankingTable('', specialRanking, [
-          { key: 'points', label: 'Points Totaux', width: '120px' },
-          { key: 'top4Pts', label: 'Points Top 4', width: '120px' },
-          { key: 'goalsPts', label: 'Points Buts', width: '120px' },
-          { key: 'winnerPts', label: 'Points Vainqueur', width: '120px' }
+          { key: 'points', label: 'Points Totaux', width: '110px' },
+          { key: 'top4Pts', label: 'Points Top4', width: '110px' },
+          { key: 'goalsPts', label: 'Points Buts', width: '110px' },
+          { key: 'winnerPts', label: 'Points Vainqueur', width: '110px' }
         ])}
       </div>
       <div id="public-tab-top3" style="display:none">
