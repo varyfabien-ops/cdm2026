@@ -2782,6 +2782,11 @@ async function computeAllTop3Data() {
   const byGroup = {}; Object.keys(GROUPS).forEach(g => { byGroup['Groupe ' + g] = {}; });
   const ROUND_LABELS = ['Seizièmes', 'Huitièmes', 'Quarts', 'Demi-finales', 'FINALES'];
   const byRound = {}; ROUND_LABELS.forEach(r => { byRound[r] = {}; });
+  const credit = (bucket, pseudo, pts, isExact) => {
+    if (!bucket[pseudo]) bucket[pseudo] = { points: 0, exact: 0 };
+    bucket[pseudo].points += pts;
+    if (isExact) bucket[pseudo].exact += 1;
+  };
 
   const matchesWithResult = ALL_MATCHES.filter(m => allResults[m.id]);
   matchesWithResult.forEach(m => {
@@ -2793,53 +2798,25 @@ async function computeAllTop3Data() {
     const awayTeam = TEAMS.find(t => normTeam(t) === normTeam(m.away));
     (pronosByMatch[m.id] || []).forEach(p => {
       if (p.home === '' || p.away === '' || p.home == null || p.away == null) return;
-      let pts = 0;
-      if (Number(p.home) === Number(res.home) && Number(p.away) === Number(res.away)) pts = 3 * mult;
+      let pts = 0, isExact = false;
+      if (Number(p.home) === Number(res.home) && Number(p.away) === Number(res.away)) { pts = 3 * mult; isExact = true; }
       else if (Math.sign(p.home - p.away) === Math.sign(res.home - res.away)) pts = 1 * mult;
-      if (pts === 0) return;
-      if (homeTeam) byTeam[homeTeam][p.pseudo] = (byTeam[homeTeam][p.pseudo] || 0) + pts;
-      if (awayTeam) byTeam[awayTeam][p.pseudo] = (byTeam[awayTeam][p.pseudo] || 0) + pts;
-      if (isGroup && byGroup[m.phase]) byGroup[m.phase][p.pseudo] = (byGroup[m.phase][p.pseudo] || 0) + pts;
-      if (byRound[roundLabel]) byRound[roundLabel][p.pseudo] = (byRound[roundLabel][p.pseudo] || 0) + pts;
+      if (homeTeam) credit(byTeam[homeTeam], p.pseudo, pts, isExact);
+      if (awayTeam) credit(byTeam[awayTeam], p.pseudo, pts, isExact);
+      if (isGroup && byGroup[m.phase]) credit(byGroup[m.phase], p.pseudo, pts, isExact);
+      if (roundLabel && byRound[roundLabel]) credit(byRound[roundLabel], p.pseudo, pts, isExact);
     });
   });
 
-  const toSortedList = obj => Object.entries(obj).map(([pseudo, points]) => ({ pseudo, points })).sort((a, b) => b.points - a.points);
+  const toSortedList = obj => Object.entries(obj)
+    .map(([pseudo, s]) => ({ pseudo, points: s.points, exact: s.exact }))
+    .sort((a, b) => b.points - a.points || b.exact - a.exact);
 
   const teams = TEAMS.map(t => ({ name: t, ranking: toSortedList(byTeam[t]) })).filter(t => t.ranking.length);
   const groups = Object.keys(GROUPS).map(g => ({ name: 'Groupe ' + g, ranking: toSortedList(byGroup['Groupe ' + g]) })).filter(g => g.ranking.length);
   const rounds = ROUND_LABELS.map(r => ({ name: r, ranking: toSortedList(byRound[r]) })).filter(r => r.ranking.length);
 
   return { teams, groups, rounds };
-}
-async function computeTeamRanking(teamName) {
-  await loadResults();
-  const { data: players } = await sb.from('players').select('pseudo');
-  const { data: allPronos } = await sb.from('pronos').select('pseudo,match_id,home,away').neq('match_id', 'special').limit(20000);
-  const pronosByPseudo = {};
-  (allPronos || []).forEach(r => {
-    if (!pronosByPseudo[r.pseudo]) pronosByPseudo[r.pseudo] = [];
-    pronosByPseudo[r.pseudo].push(r);
-  });
-  const normTeam = s => (s || '').toString().trim().toLowerCase();
-  const target = normTeam(teamName);
-  const teamMatches = ALL_MATCHES.filter(m => (normTeam(m.home) === target || normTeam(m.away) === target) && allResults[m.id]);
-  const ranking = (players || []).map(p => {
-    const predMap = {};
-    (pronosByPseudo[p.pseudo] || []).forEach(x => { predMap[String(x.match_id)] = x; });
-    let points = 0, exact = 0, predicted = 0;
-    teamMatches.forEach(m => {
-      const res = allResults[m.id];
-      const pr = predMap[String(m.id)];
-      if (!pr || pr.home === '' || pr.away === '' || pr.home == null || pr.away == null) return;
-      predicted++;
-      const mult = PHASE_MULT[m.phase] || 1;
-      if (Number(pr.home) === Number(res.home) && Number(pr.away) === Number(res.away)) { points += 3 * mult; exact++; }
-      else if (Math.sign(pr.home - pr.away) === Math.sign(res.home - res.away)) points += 1 * mult;
-    });
-    return { pseudo: p.pseudo, points, exact, predicted };
-  }).filter(r => r.predicted > 0).sort((a, b) => b.points - a.points);
-  return { ranking, matchCount: teamMatches.length };
 }
 async function computeSpecialRanking() {
   await loadResults();
@@ -2870,7 +2847,7 @@ function buildTop3Card(name, ranking, icon) {
   const podium = ranking.slice(0, 3).map((r, i) => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;${i < 2 ? 'border-bottom:1px solid var(--border)' : ''}">
       <span style="font-size:13px;color:var(--text2)">${medals[i]} ${r.pseudo}</span>
-      <span class="rank-pts" style="font-size:15px">${r.points}</span>
+      <span style="text-align:right"><span class="rank-pts" style="font-size:15px">${r.points}</span><span class="rank-exact" style="font-size:11px;margin-left:4px">(${r.exact} ex.)</span></span>
     </div>`).join('');
   const safeId = (name).replace(/[^a-z0-9]/gi, '_');
   return `<div class="form-card" style="margin-bottom:0">
@@ -2887,7 +2864,7 @@ function showTop3Popup(title, safeId) {
   const rows = entry.ranking.map((r, i) => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border)">
       <span style="font-size:14px;color:var(--text)">${i < 3 ? ['🥇', '🥈', '🥉'][i] : '#' + (i + 1)} ${r.pseudo}</span>
-      <span class="rank-pts">${r.points}</span>
+      <span><span class="rank-pts">${r.points}</span><span class="rank-exact" style="font-size:12px;margin-left:6px">(${r.exact} exact${r.exact > 1 ? 's' : ''})</span></span>
     </div>`).join('');
   const modal = document.createElement('div');
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
@@ -2905,7 +2882,7 @@ async function renderPublicTop3() {
     const grid = arr => `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:28px">${arr.join('')}</div>`;
     container.innerHTML = `
       <h3 style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:1.2rem;margin:0 0 12px">🌍 Par pays</h3>
-      ${data.teams.length ? grid(data.teams.map(t => buildTop3Card(t.name, t.ranking, TEAM_FLAGS[t.name] || ''))) : '<div class="empty-state"><p>Aucun match joué pour l\'instant.</p></div>'}
+      ${data.teams.length ? grid(data.teams.map(t => buildTop3Card(t.name, t.ranking, ''))) : '<div class="empty-state"><p>Aucun match joué pour l\'instant.</p></div>'}
       <h3 style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:1.2rem;margin:0 0 12px">📋 Par groupe</h3>
       ${data.groups.length ? grid(data.groups.map(g => buildTop3Card(g.name, g.ranking, '📋'))) : '<div class="empty-state"><p>Aucun match joué pour l\'instant.</p></div>'}
       <h3 style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:1.2rem;margin:0 0 12px">🏆 Par tour de compétition</h3>
@@ -3264,7 +3241,6 @@ async function renderPublicResults() {
         <button onclick="switchPublicTab('finale', this)">🔥 Phase finale</button>
         <button onclick="switchPublicTab('speciaux', this)">🎯 Pronostics spéciaux</button>
         <button onclick="switchPublicTab('chance', this)">🎯 Efficacité</button>
-        <button onclick="switchPublicTab('team', this)">🌍 Par équipe</button>
         <button onclick="switchPublicTab('top3', this)">🥇 Tous les Top 3</button>
         <button onclick="switchPublicTab('onze', this)">⚽ Onze Type</button>
       </div>
@@ -3313,15 +3289,6 @@ async function renderPublicResults() {
           { key: 'pct', label: 'Efficacité', width: '100px' }
         ])}
       </div>
-      <div id="public-tab-team" style="display:none">
-        <h3 style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:1.2rem;margin:0 0 8px">🌍 Classement par équipe</h3>
-        <p style="color:var(--text2);font-size:12px;margin:-4px 0 10px">Choisis une équipe pour voir qui a le mieux pronostiqué ses matchs</p>
-        <select id="public-team-select" class="form-input" style="max-width:320px;margin-bottom:16px" onchange="loadPublicTeamRanking()">
-          <option value="">— Choisir une équipe —</option>
-          ${[...TEAMS].sort((a, b) => a.localeCompare(b)).map(t => `<option value="${t}">${t}</option>`).join('')}
-        </select>
-        <div id="public-team-results"></div>
-      </div>
       <div id="public-tab-top3" style="display:none">
         <h3 style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:1.2rem;margin:0 0 8px">🥇 Tous les Top 3</h3>
         <p style="color:var(--text2);font-size:12px;margin:-4px 0 14px">Top 3 par pays, par groupe et par tour de compétition — clique sur « Voir tout » pour le classement complet</p>
@@ -3338,39 +3305,13 @@ async function renderPublicResults() {
   }
 }
 function switchPublicTab(tab, btn) {
-  ['general', 'groupes', 'finale', 'speciaux', 'chance', 'team', 'top3', 'onze'].forEach(t => {
+  ['general', 'groupes', 'finale', 'speciaux', 'chance', 'top3', 'onze'].forEach(t => {
     const el = document.getElementById('public-tab-' + t);
     if (el) el.style.display = (t === tab) ? '' : 'none';
   });
   document.querySelectorAll('#public-tabs button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   if (tab === 'top3' && !top3DataCache) renderPublicTop3();
-}
-async function loadPublicTeamRanking() {
-  const select = document.getElementById('public-team-select');
-  const container = document.getElementById('public-team-results');
-  if (!select || !container) return;
-  const team = select.value;
-  if (!team) { container.innerHTML = ''; return; }
-  container.innerHTML = '<div class="empty-state"><p>Chargement…</p></div>';
-  try {
-    const { ranking, matchCount } = await computeTeamRanking(team);
-    if (!matchCount) {
-      container.innerHTML = `<div class="empty-state"><p>Aucun match de ${team} n'a encore de résultat.</p></div>`;
-      return;
-    }
-    container.innerHTML = buildPublicRankingTable(
-      `${team} — ${matchCount} match${matchCount > 1 ? 's' : ''} joué${matchCount > 1 ? 's' : ''}`,
-      ranking,
-      [
-        { key: 'points', label: 'Points', width: '100px' },
-        { key: 'exact', label: 'Scores exacts', width: '120px' }
-      ]
-    );
-  } catch (e) {
-    console.error(e);
-    container.innerHTML = '<div class="empty-state"><p>Erreur de chargement.</p></div>';
-  }
 }
 async function togglePublicMosaic(pseudo, rid) {
   const el = document.getElementById(rid);
