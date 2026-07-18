@@ -2950,7 +2950,7 @@ async function computeEfficiencyStats() {
 }
 async function computeOnzeType() {
   await loadResults();
-  const [{ data: players }, { data: allPronos }, { data: specialPronos }, orderMap, overall, phaseRankings, specialRanking, { data: allSnaps }] = await Promise.all([
+  const [{ data: players }, { data: allPronos }, { data: specialPronos }, orderMap, overall, phaseRankings, specialRanking, { data: allSnaps }, top3] = await Promise.all([
     sb.from('players').select('pseudo'),
     sb.from('pronos').select('pseudo,match_id,home,away').neq('match_id', 'special').limit(20000),
     sb.from('pronos').select('pseudo,special').eq('match_id', 'special'),
@@ -2958,8 +2958,21 @@ async function computeOnzeType() {
     computeFullRankingForDiploma(),
     computePhaseRankings(),
     computeSpecialRanking(),
-    sb.from('ranking_snapshots').select('pseudo,position,match_number').order('match_number', { ascending: true })
+    sb.from('ranking_snapshots').select('pseudo,position,match_number').order('match_number', { ascending: true }),
+    computeAllTop3Data()
   ]);
+  top3DataCache = top3;
+  // Liste des "champions" : tous les n°1 des classements Top 3 (pays, groupe, tour), dédupliqués
+  const championsMap = {};
+  [...top3.teams, ...top3.groups, ...top3.rounds].forEach(cat => {
+    if (!cat.ranking.length) return;
+    const winner = cat.ranking[0].pseudo;
+    if (!championsMap[winner]) championsMap[winner] = [];
+    championsMap[winner].push(cat.name);
+  });
+  const champions = Object.entries(championsMap)
+    .map(([pseudo, wins]) => ({ pseudo, wins }))
+    .sort((a, b) => b.wins.length - a.wins.length || a.pseudo.localeCompare(b.pseudo));
   const pronosByPseudo = {};
   (allPronos || []).forEach(r => {
     if (!pronosByPseudo[r.pseudo]) pronosByPseudo[r.pseudo] = [];
@@ -2988,7 +3001,7 @@ async function computeOnzeType() {
   );
   const onlyEligible = list => list.filter(r => eligible.has(r.pseudo));
 
-  // GK — Plus forte remontée lors de la phase finale (position fin de groupes → position finale)
+  // Arrière droit — Plus forte remontée lors de la phase finale (position fin de groupes → position finale)
   let climb = [];
   if (allSnaps && allSnaps.length) {
     const groupSnaps = allSnaps.filter(s => s.match_number <= 72);
@@ -3071,27 +3084,6 @@ async function computeOnzeType() {
   const perfectInfoMap = {};
   perfects.forEach(p => { perfectInfoMap[p.pseudo] = p; });
 
-  // Arrière droit — Le plus efficace : meilleur ratio (bons résultats + scores exacts) / pronostics soumis
-  const efficiencyStats = (players || []).map(p => {
-    const predMap = {};
-    (pronosByPseudo[p.pseudo] || []).forEach(x => { predMap[String(x.match_id)] = x; });
-    let exact = 0, bon = 0, mauvais = 0, total = 0;
-    resultedMatches.forEach(m => {
-      const res = allResults[m.id];
-      const pr = predMap[String(m.id)];
-      if (!pr || pr.home === '' || pr.away === '' || pr.home == null || pr.away == null) return;
-      total++;
-      const isExact = Number(pr.home) === Number(res.home) && Number(pr.away) === Number(res.away);
-      const trendGood = Math.sign(pr.home - pr.away) === Math.sign(res.home - res.away);
-      if (isExact) exact++;
-      else if (trendGood) bon++;
-      else mauvais++;
-    });
-    const ratio = total ? (bon + exact) / total : 0;
-    return { pseudo: p.pseudo, exact, bon, mauvais, total, ratio };
-  }).filter(s => s.total > 0);
-  const efficaces = [...efficiencyStats].sort((a, b) => b.ratio - a.ratio);
-
   // Milieu offensif — Le plus près du nombre de buts total du tournoi (pronostic spécial "buts exacts")
   let closestGoals = [];
   if (specialResults && specialResults.totalgoals !== undefined && specialResults.totalgoals !== '' && specialResults.totalgoals !== null) {
@@ -3126,14 +3118,13 @@ async function computeOnzeType() {
   const cb2 = pick(phaseRankings.finale);
   const dm1 = pick(overall);
   const dm2 = pick(overall);
-  const gk = pick(climb, { eligibleOnly: true, ok: r => r.gain > 0 });
   const lw = pick(streaks, { eligibleOnly: true, ok: r => r.streak > 0 });
   const cam = pick(closestGoals, { eligibleOnly: true });
   const lb = pick(perfects, {});
-  const rb = pick(efficaces, { eligibleOnly: true });
+  const rb = pick(climb, { eligibleOnly: true, ok: r => r.gain > 0 });
 
   // Ordre de retour = ordre d'affichage sur le terrain (attaque → gardien)
-  return [
+  const team = [
     { pos: 'ST', label: st ? (st.rank === 1 ? 'Vainqueur du concours' : `${ord(st.rank)} du concours`) : 'Vainqueur du concours', pseudo: st && st.pseudo },
     { pos: 'LW', label: 'Meilleure série de bons résultats', pseudo: lw && lw.pseudo },
     { pos: 'CAM', label: 'Le plus près du nombre de buts total', pseudo: cam && cam.pseudo },
@@ -3143,9 +3134,10 @@ async function computeOnzeType() {
     { pos: 'LB', label: lb ? `Perfect sur ${perfectInfoMap[lb.pseudo].catName} (${perfectInfoMap[lb.pseudo].total}/${perfectInfoMap[lb.pseudo].total})` : 'Perfect sur un tour, un groupe ou une équipe', pseudo: lb && lb.pseudo },
     { pos: 'CB', label: cb1 ? (cb1.rank === 1 ? 'Meilleur Phase de groupes' : `${ord(cb1.rank)} Phase de groupes`) : 'Meilleur Phase de groupes', pseudo: cb1 && cb1.pseudo },
     { pos: 'CB', label: cb2 ? (cb2.rank === 1 ? 'Meilleur Phase finale' : `${ord(cb2.rank)} Phase finale`) : 'Meilleur Phase finale', pseudo: cb2 && cb2.pseudo },
-    { pos: 'RB', label: 'Le plus efficace', pseudo: rb && rb.pseudo },
-    { pos: 'GK', label: 'Plus forte remontée en phase finale', pseudo: gk && gk.pseudo },
+    { pos: 'RB', label: 'Plus forte remontée en phase finale', pseudo: rb && rb.pseudo },
+    { pos: 'GK', label: '__FREE_CHOICE__', pseudo: null },
   ];
+  return { team, champions };
 }
 function buildGoalNetSVG() {
   const w = 170, h = 74, pad = 6;
@@ -3168,10 +3160,37 @@ const ONZE_POS_LABELS = {
   ST: 'ATTAQUANT', LW: 'AILIER GAUCHE', CAM: 'MILIEU OFFENSIF', RW: 'AILIER DROIT',
   DM: 'MILIEU DÉFENSIF', LB: 'ARRIÈRE GAUCHE', CB: 'DÉFENSEUR CENTRAL', RB: 'ARRIÈRE', GK: 'GARDIEN DE BUT'
 };
-function buildOnzeTypeHTML(team) {
-  const chip = p => `<div style="background:rgba(255,255,255,0.95);border-radius:10px;padding:10px 16px;width:auto;min-width:150px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.25)">
+let onzeChampionsCache = [];
+function changeOnzeGK(select) {
+  const pseudo = select.value;
+  const champ = onzeChampionsCache.find(c => c.pseudo === pseudo);
+  const tp = document.getElementById('onze-gk-table-pseudo');
+  if (tp) tp.textContent = pseudo || '?';
+  const tl = document.getElementById('onze-gk-table-label');
+  if (tl) {
+    tl.textContent = champ
+      ? 'Champion de ' + champ.wins.slice(0, 3).join(', ') + (champ.wins.length > 3 ? ' et ' + (champ.wins.length - 3) + ' autre(s)' : '')
+      : '';
+  }
+}
+function buildOnzeTypeHTML(data) {
+  const { team, champions } = data;
+  onzeChampionsCache = champions;
+  const describeChampion = c => c ? ('Champion de ' + c.wins.slice(0, 3).join(', ') + (c.wins.length > 3 ? ' et ' + (c.wins.length - 3) + ' autre(s)' : '')) : '';
+  const chip = p => {
+    if (p.pos === 'GK') {
+      const opts = champions.map(c => `<option value="${c.pseudo}">${c.pseudo} (${c.wins.length})</option>`).join('');
+      return `<div style="background:rgba(255,255,255,0.95);border-radius:10px;padding:8px 10px;width:auto;min-width:180px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.25)">
+        <div style="font-size:10px;color:#5b6472;margin-bottom:4px">🧤 Choisis ton gardien</div>
+        <select id="onze-gk-select" onchange="changeOnzeGK(this)" style="width:100%;font-weight:700;color:#1f2937;font-size:13px;border:1px solid #d1d5db;border-radius:6px;padding:4px;background:#fff">
+          ${champions.length ? opts : '<option value="">Aucun champion pour l\'instant</option>'}
+        </select>
+      </div>`;
+    }
+    return `<div style="background:rgba(255,255,255,0.95);border-radius:10px;padding:10px 16px;width:auto;min-width:150px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.25)">
       <div style="font-weight:700;color:#1f2937;font-size:15px;line-height:1.2;white-space:nowrap">${p.pseudo || '?'}</div>
     </div>`;
+  };
   const line = arr => `<div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap">${arr.map(chip).join('')}</div>`;
   const byPos = {};
   team.forEach(p => { (byPos[p.pos] = byPos[p.pos] || []).push(p); });
@@ -3188,12 +3207,23 @@ function buildOnzeTypeHTML(team) {
       ${line(byPos.GK || [])}
     </div>
   </div>`;
-  const tableRows = team.map(p => `
+  const tableRows = team.map(p => {
+    if (p.pos === 'GK') {
+      const first = champions[0];
+      return `
+      <div class="rank-row" style="grid-template-columns:150px 1fr 1fr">
+        <div style="color:var(--gold);font-weight:600">${ONZE_POS_LABELS.GK}</div>
+        <div class="rank-pseudo" id="onze-gk-table-pseudo">${first ? first.pseudo : '?'}</div>
+        <div style="color:var(--text2);font-size:13px" id="onze-gk-table-label">${first ? describeChampion(first) : 'Aucun champion disponible pour l\'instant'}</div>
+      </div>`;
+    }
+    return `
     <div class="rank-row" style="grid-template-columns:150px 1fr 1fr">
       <div style="color:var(--gold);font-weight:600">${ONZE_POS_LABELS[p.pos] || p.pos}</div>
       <div class="rank-pseudo">${p.pseudo || '?'}</div>
       <div style="color:var(--text2);font-size:13px">${p.label}</div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   const table = `<div class="ranking-card" style="border:1px solid var(--gold);border-radius:12px;overflow:hidden;margin-top:20px">
     <div class="rank-row header" style="grid-template-columns:150px 1fr 1fr"><div>Poste</div><div>Joueur</div><div>Critère</div></div>
     ${tableRows}
