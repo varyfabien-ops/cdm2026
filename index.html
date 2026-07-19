@@ -653,7 +653,7 @@ const ADMIN_PSEUDO = 'Admin CSE';
   <div id="public-page-header" style="text-align:center;margin-bottom:1.5rem">
     <div class="hero-badge" style="display:inline-block">CSE Astrea Monts — Concours Officiel</div>
     <h1 style="font-family:'Bebas Neue',sans-serif;font-size:2.4rem;letter-spacing:3px;margin:8px 0 4px">CLASSEMENT — COUPE DU MONDE <span style="color:var(--gold)">2026</span></h1>
-    <p style="color:var(--text2);font-size:15px">Résultats complets — accessible à tous, inscrits ou non</p>
+    <p style="color:var(--text2);font-size:15px">Résultats complets</p>
   </div>
   <div id="public-content"><div class="empty-state"><p>Chargement…</p></div></div>
 </div>
@@ -3297,8 +3297,8 @@ async function renderPublicResults() {
           <div style="text-align:center">${finalePtsMap[r.pseudo] || 0}</div>
           <div style="text-align:center">${specialPtsMap[r.pseudo] || 0}</div>
           <div class="rank-exact" style="text-align:center">${r.exact}</div>
-          <div style="text-align:center"><button class="btn btn-outline btn-sm" style="font-size:12px;padding:4px 8px" onclick="togglePublicMosaic('${r.pseudo.replace(/'/g, "\\'")}','${rid}')">🎨 Mosaïque</button></div>
-          <div style="text-align:center"><button class="btn btn-outline btn-sm" style="font-size:12px;padding:4px 8px" onclick="togglePublicEvolution('${r.pseudo.replace(/'/g, "\\'")}','${eid}')">📈 Évolution</button></div>
+          <div style="text-align:center"><button class="btn btn-outline btn-sm" style="font-size:12px;padding:4px 8px" onclick="togglePublicMosaic('${r.pseudo.replace(/'/g, "\\'")}','${rid}')">🎨 MOSAIQUE</button></div>
+          <div style="text-align:center"><button class="btn btn-outline btn-sm" style="font-size:12px;padding:4px 8px" onclick="togglePublicEvolution('${r.pseudo.replace(/'/g, "\\'")}','${eid}')">📈 STRAVA</button></div>
         </div>
         <div id="${rid}" style="display:none;padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border)"></div>
         <div id="${eid}" style="display:none;padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border)"></div>`;
@@ -3491,8 +3491,7 @@ function printSelectedRanking() {
   // Compactage automatique pour tenir sur une seule page, selon le nombre de lignes
   const n = filteredList.length;
   let rowFont = 13, rowPad = '10px 12px', headerMargin = '10px';
-  if (n > 80) { rowFont = 6; rowPad = '1px 4px'; headerMargin = '3px'; }
-  else if (n > 60) { rowFont = 7; rowPad = '2px 6px'; headerMargin = '4px'; }
+  if (n > 60) { rowFont = 7; rowPad = '2px 6px'; headerMargin = '4px'; }
   else if (n > 40) { rowFont = 8; rowPad = '3px 8px'; headerMargin = '5px'; }
   else if (n > 25) { rowFont = 10; rowPad = '4px 10px'; headerMargin = '6px'; }
   else if (n > 12) { rowFont = 11; rowPad = '6px 10px'; headerMargin = '8px'; }
@@ -3501,7 +3500,7 @@ function printSelectedRanking() {
   const pageStyle = document.createElement('style');
   pageStyle.id = 'print-ranking-page-style';
   pageStyle.textContent = `
-    @page { size: landscape; margin: 5mm; }
+    @page { size: landscape; margin: 6mm; }
     body.print-ranking-only #print-ranking-preview .rank-row { font-size: ${rowFont}px !important; padding: ${rowPad} !important; min-height: 0 !important; }
     body.print-ranking-only #print-ranking-preview .rank-pts, body.print-ranking-only #print-ranking-preview .rank-exact { font-size: ${rowFont + 1}px !important; }
     body.print-ranking-only #print-ranking-preview h2 { margin: ${headerMargin} 0 2px !important; }
