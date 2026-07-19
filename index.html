@@ -3163,15 +3163,15 @@ async function computeOnzeType(precomputed) {
 
   // Ordre de retour = ordre d'affichage sur le terrain (attaque → gardien)
   const team = [
-    { pos: 'ST', label: st ? (st.rank === 1 ? 'Vainqueur du concours' : `${ord(st.rank)} du concours`) : 'Vainqueur du concours', fun: 'Notre buteur en chef', pseudo: st && st.pseudo },
-    { pos: 'LW', label: 'Meilleure série de bons résultats', fun: 'Le métronome de l\'aile gauche', pseudo: lw && lw.pseudo },
+    { pos: 'ST', label: st ? (st.rank === 1 ? 'Vainqueur du concours' : `${ord(st.rank)} du concours`) : 'Vainqueur du concours', fun: 'xx buts inscrits durant la compétition...L\’efficacité élevée au rang d’art ! ', pseudo: st && st.pseudo },
+    { pos: 'LW', label: 'Meilleure série de bons résultats', fun: 'Elle a mis le feu à son couloir, sans déclencher l\'alarme fort heureusement !', pseudo: lw && lw.pseudo },
     { pos: 'CAM', label: 'Le plus près du nombre de buts total', fun: 'Une parfaite vision du jeu, aucune passe n\'est impossible pour un tel talent', pseudo: cam && cam.pseudo },
     { pos: 'RW', label: rw ? (rw.rank === 1 ? 'Leader Pronostics spéciaux' : `${ord(rw.rank)} Pronostics spéciaux`) : 'Leader Pronostics spéciaux', fun: 'L\'Argentine a MESSI, l\'Espagne a LAMINE YAMAL...Astrea Monts a bien mieux !', pseudo: rw && rw.pseudo },
     { pos: 'DM', label: dm1 ? `${ord(dm1.rank)} du concours` : '2e du concours', fun: 'Toujours en avance, la SNCF n\'envisage pas de faire une promesse d\'embauche !', pseudo: dm1 && dm1.pseudo },
-    { pos: 'DM', label: dm2 ? `${ord(dm2.rank)} du concours` : '3e du concours', fun: 'Le troisième homme du milieu', pseudo: dm2 && dm2.pseudo },
+    { pos: 'DM', label: dm2 ? `${ord(dm2.rank)} du concours` : '3e du concours', fun: 'Récupération, projection, orientation, déviation, élimination...Il a sorti la définition du mot football !', pseudo: dm2 && dm2.pseudo },
     { pos: 'LB', label: lb ? `Perfect sur ${perfectInfoMap[lb.pseudo].catName} (${perfectInfoMap[lb.pseudo].total}/${perfectInfoMap[lb.pseudo].total})` : 'Perfect sur un tour, un groupe ou une équipe', fun: 'Son aile gauche est devenue sa propriété privée. Défense d\'entrer !', pseudo: lb && lb.pseudo },
-    { pos: 'CB', label: cb1 ? (cb1.rank === 1 ? 'Meilleur Phase de groupes' : `${ord(cb1.rank)} Phase de groupes`) : 'Meilleur Phase de groupes', fun: 'Le roc de la phase de groupes', pseudo: cb1 && cb1.pseudo },
-    { pos: 'CB', label: cb2 ? (cb2.rank === 1 ? 'Meilleur Phase finale' : `${ord(cb2.rank)} Phase finale`) : 'Meilleur Phase finale', fun: 'Le mur des grands soirs', pseudo: cb2 && cb2.pseudo },
+    { pos: 'CB', label: cb1 ? (cb1.rank === 1 ? 'Meilleur Phase de groupes' : `${ord(cb1.rank)} Phase de groupes`) : 'Meilleur Phase de groupes', fun: 'Un roc dans les duels, solide sur l\'homme, impérial dans le domaine aérien...Un patron dans l\'attitude', pseudo: cb1 && cb1.pseudo },
+    { pos: 'CB', label: cb2 ? (cb2.rank === 1 ? 'Meilleur Phase finale' : `${ord(cb2.rank)} Phase finale`) : 'Meilleur Phase finale', fun: 'En imposant sa loi, il a simplifié les situations difficiles et arefroidi les offensives avant qu\'elles ne chauffent !', pseudo: cb2 && cb2.pseudo },
     { pos: 'RB', label: 'Plus forte remontée en phase finale', fun: 'Toujours disponible pour offrir une solution, jamais débordé par les adversaires !', pseudo: rb && rb.pseudo },
     { pos: 'GK', label: gkLabel, fun: 'Tel un rempart, même les tirs cadrés adverses ne souhaitaient pas faire trembler les filets !', pseudo: gk && gk.pseudo },
   ];
