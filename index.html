@@ -653,7 +653,7 @@ const ADMIN_PSEUDO = 'Admin CSE';
   <div id="public-page-header" style="text-align:center;margin-bottom:1.5rem">
     <div class="hero-badge" style="display:inline-block">CSE Astrea Monts — Concours Officiel</div>
     <h1 style="font-family:'Bebas Neue',sans-serif;font-size:2.4rem;letter-spacing:3px;margin:8px 0 4px">CLASSEMENT — COUPE DU MONDE <span style="color:var(--gold)">2026</span></h1>
-    <p style="color:var(--text2);font-size:15px">Résultats complets</p>
+    <p style="color:var(--text2);font-size:15px">Résultats complets — accessible à tous, inscrits ou non</p>
   </div>
   <div id="public-content"><div class="empty-state"><p>Chargement…</p></div></div>
 </div>
@@ -2741,7 +2741,7 @@ function buildDiplomaHTML(fullName, position, total, points, exact, longestStrea
         ${buildEvolutionSVG(evolution, 420, 130)}
       </div>
       <div style="text-align:center">
-        <div style="font-size:11px;letter-spacing:1px;color:#5b6472;margin-bottom:4px">TA MOSAÏQUE</div>
+        <div style="font-size:11px;letter-spacing:1px;color:#5b6472;margin-bottom:4px">TA FEUILLE DE ROUTE</div>
         ${buildMatchGridSVG(matches || [])}
         <div style="display:flex;gap:12px;justify-content:center;margin-top:7px;font-size:8px;color:#5b6472">
           <span><span style="display:inline-block;width:8px;height:8px;background:#16a34a;border-radius:2px;margin-right:3px;vertical-align:-1px"></span>PLEINE LUCARNE</span>
@@ -3163,15 +3163,15 @@ async function computeOnzeType(precomputed) {
 
   // Ordre de retour = ordre d'affichage sur le terrain (attaque → gardien)
   const team = [
-    { pos: 'ST', label: st ? (st.rank === 1 ? 'Vainqueur du concours' : `${ord(st.rank)} du concours`) : 'xx buts inscrits durant la compétition ... L\’efficacité élevée au rang d’art ! ', fun: 'xx buts inscrits durant la compétition ... L\’efficacité élevée au rang d’art !', pseudo: st && st.pseudo },
-    { pos: 'LW', label: 'Meilleure série de bons résultats', fun: 'Elle a mis le feu à son couloir, sans déclencher l\'alarme fort heureusement !', pseudo: lw && lw.pseudo },
+    { pos: 'ST', label: st ? (st.rank === 1 ? 'Vainqueur du concours' : `${ord(st.rank)} du concours`) : 'Vainqueur du concours', fun: 'Notre buteur en chef', pseudo: st && st.pseudo },
+    { pos: 'LW', label: 'Meilleure série de bons résultats', fun: 'Le métronome de l\'aile gauche', pseudo: lw && lw.pseudo },
     { pos: 'CAM', label: 'Le plus près du nombre de buts total', fun: 'Une parfaite vision du jeu, aucune passe n\'est impossible pour un tel talent', pseudo: cam && cam.pseudo },
-    { pos: 'RW', label: rw ? (rw.rank === 1 ? 'Leader Pronostics spéciaux' : `${ord(rw.rank)} Pronostics spéciaux`) : 'Leader Pronostics spéciaux', fun: 'L\'Argentine a MESSI, l\'Espagne a LAMINE YAMAL ... Astrea Monts a bien mieux !', pseudo: rw && rw.pseudo },
+    { pos: 'RW', label: rw ? (rw.rank === 1 ? 'Leader Pronostics spéciaux' : `${ord(rw.rank)} Pronostics spéciaux`) : 'Leader Pronostics spéciaux', fun: 'L\'Argentine a MESSI, l\'Espagne a LAMINE YAMAL...Astrea Monts a bien mieux !', pseudo: rw && rw.pseudo },
     { pos: 'DM', label: dm1 ? `${ord(dm1.rank)} du concours` : '2e du concours', fun: 'Toujours en avance, la SNCF n\'envisage pas de faire une promesse d\'embauche !', pseudo: dm1 && dm1.pseudo },
-    { pos: 'DM', label: dm2 ? `${ord(dm2.rank)} du concours` : '3e du concours', fun: 'Récupération, projection, orientation, déviation, élimination...Il a sorti la définition du mot football !', pseudo: dm2 && dm2.pseudo },
+    { pos: 'DM', label: dm2 ? `${ord(dm2.rank)} du concours` : '3e du concours', fun: 'Le troisième homme du milieu', pseudo: dm2 && dm2.pseudo },
     { pos: 'LB', label: lb ? `Perfect sur ${perfectInfoMap[lb.pseudo].catName} (${perfectInfoMap[lb.pseudo].total}/${perfectInfoMap[lb.pseudo].total})` : 'Perfect sur un tour, un groupe ou une équipe', fun: 'Son aile gauche est devenue sa propriété privée. Défense d\'entrer !', pseudo: lb && lb.pseudo },
-    { pos: 'CB', label: cb1 ? (cb1.rank === 1 ? 'Meilleur Phase de groupes' : `${ord(cb1.rank)} Phase de groupes`) : 'Meilleur Phase de groupes', fun: 'Un roc dans les duels, solide sur l\'homme, impérial dans le domaine aérien...Un patron dans l\'attitude', pseudo: cb1 && cb1.pseudo },
-    { pos: 'CB', label: cb2 ? (cb2.rank === 1 ? 'Meilleur Phase finale' : `${ord(cb2.rank)} Phase finale`) : 'Meilleur Phase finale', fun: 'En imposant sa loi, il a simplifié les situations difficiles. Il a refroidi les offensives avant qu\'elles ne chauffent !', pseudo: cb2 && cb2.pseudo },
+    { pos: 'CB', label: cb1 ? (cb1.rank === 1 ? 'Meilleur Phase de groupes' : `${ord(cb1.rank)} Phase de groupes`) : 'Meilleur Phase de groupes', fun: 'Le roc de la phase de groupes', pseudo: cb1 && cb1.pseudo },
+    { pos: 'CB', label: cb2 ? (cb2.rank === 1 ? 'Meilleur Phase finale' : `${ord(cb2.rank)} Phase finale`) : 'Meilleur Phase finale', fun: 'Le mur des grands soirs', pseudo: cb2 && cb2.pseudo },
     { pos: 'RB', label: 'Plus forte remontée en phase finale', fun: 'Toujours disponible pour offrir une solution, jamais débordé par les adversaires !', pseudo: rb && rb.pseudo },
     { pos: 'GK', label: gkLabel, fun: 'Tel un rempart, même les tirs cadrés adverses ne souhaitaient pas faire trembler les filets !', pseudo: gk && gk.pseudo },
   ];
@@ -3297,8 +3297,8 @@ async function renderPublicResults() {
           <div style="text-align:center">${finalePtsMap[r.pseudo] || 0}</div>
           <div style="text-align:center">${specialPtsMap[r.pseudo] || 0}</div>
           <div class="rank-exact" style="text-align:center">${r.exact}</div>
-          <div style="text-align:center"><button class="btn btn-outline btn-sm" style="font-size:12px;padding:4px 8px" onclick="togglePublicMosaic('${r.pseudo.replace(/'/g, "\\'")}','${rid}')">🎨 MOSAÏQUE</button></div>
-          <div style="text-align:center"><button class="btn btn-outline btn-sm" style="font-size:12px;padding:4px 8px" onclick="togglePublicEvolution('${r.pseudo.replace(/'/g, "\\'")}','${eid}')">📈 STRAVA</button></div>
+          <div style="text-align:center"><button class="btn btn-outline btn-sm" style="font-size:12px;padding:4px 8px" onclick="togglePublicMosaic('${r.pseudo.replace(/'/g, "\\'")}','${rid}')">🎨 Mosaïque</button></div>
+          <div style="text-align:center"><button class="btn btn-outline btn-sm" style="font-size:12px;padding:4px 8px" onclick="togglePublicEvolution('${r.pseudo.replace(/'/g, "\\'")}','${eid}')">📈 Évolution</button></div>
         </div>
         <div id="${rid}" style="display:none;padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border)"></div>
         <div id="${eid}" style="display:none;padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border)"></div>`;
@@ -3488,8 +3488,32 @@ function printSelectedRanking() {
     </div>
     ${buildPublicRankingTable('', filteredList, def.cols)}`;
 
+  // Compactage automatique pour tenir sur une seule page, selon le nombre de lignes
+  const n = filteredList.length;
+  let rowFont = 13, rowPad = '10px 12px', headerMargin = '10px';
+  if (n > 80) { rowFont = 6; rowPad = '1px 4px'; headerMargin = '3px'; }
+  else if (n > 60) { rowFont = 7; rowPad = '2px 6px'; headerMargin = '4px'; }
+  else if (n > 40) { rowFont = 8; rowPad = '3px 8px'; headerMargin = '5px'; }
+  else if (n > 25) { rowFont = 10; rowPad = '4px 10px'; headerMargin = '6px'; }
+  else if (n > 12) { rowFont = 11; rowPad = '6px 10px'; headerMargin = '8px'; }
+  const oldStyle = document.getElementById('print-ranking-page-style');
+  if (oldStyle) oldStyle.remove();
+  const pageStyle = document.createElement('style');
+  pageStyle.id = 'print-ranking-page-style';
+  pageStyle.textContent = `
+    @page { size: landscape; margin: 5mm; }
+    body.print-ranking-only #print-ranking-preview .rank-row { font-size: ${rowFont}px !important; padding: ${rowPad} !important; min-height: 0 !important; }
+    body.print-ranking-only #print-ranking-preview .rank-pts, body.print-ranking-only #print-ranking-preview .rank-exact { font-size: ${rowFont + 1}px !important; }
+    body.print-ranking-only #print-ranking-preview h2 { margin: ${headerMargin} 0 2px !important; }
+  `;
+  document.head.appendChild(pageStyle);
+
   document.body.classList.add('print-ranking-only');
-  const cleanup = () => document.body.classList.remove('print-ranking-only');
+  const cleanup = () => {
+    document.body.classList.remove('print-ranking-only');
+    const el = document.getElementById('print-ranking-page-style');
+    if (el) el.remove();
+  };
   window.addEventListener('afterprint', cleanup, { once: true });
   window.print();
   setTimeout(cleanup, 1000);
