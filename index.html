@@ -3500,7 +3500,7 @@ function printSelectedRanking() {
   const pageStyle = document.createElement('style');
   pageStyle.id = 'print-ranking-page-style';
   pageStyle.textContent = `
-    @page { size: landscape; margin: 6mm; }
+    @page { size: A4 portrait; margin: 6mm; }
     body.print-ranking-only #print-ranking-preview .rank-row { font-size: ${rowFont}px !important; padding: ${rowPad} !important; min-height: 0 !important; }
     body.print-ranking-only #print-ranking-preview .rank-pts, body.print-ranking-only #print-ranking-preview .rank-exact { font-size: ${rowFont + 1}px !important; }
     body.print-ranking-only #print-ranking-preview h2 { margin: ${headerMargin} 0 2px !important; }
